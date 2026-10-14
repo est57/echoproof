@@ -126,6 +126,8 @@ echoproof record --upstream http://127.0.0.1:8000 --listen 127.0.0.1:8080 --out 
 
 Stop it with `Ctrl-C` once representative traffic has been collected.
 
+**Laravel apps can record without a proxy** using [echoproof/laravel](https://github.com/est57/echoproof-laravel): run `composer require echoproof/laravel`, set `ECHOPROOF_RECORD=true` in `.env`, and traffic is written to `storage/echoproof/traffic.jsonl` with the same redaction rules.
+
 **3. Run two builds**, the version before the change (base) and after it (PR), using the same database.
 
 **4. Compare:**

@@ -126,6 +126,8 @@ echoproof record --upstream http://127.0.0.1:8000 --listen 127.0.0.1:8080 --out 
 
 Hentikan dengan `Ctrl-C` setelah traffic yang representatif terkumpul.
 
+**Aplikasi Laravel bisa merekam tanpa proxy** dengan [echoproof/laravel](https://github.com/est57/echoproof-laravel): jalankan `composer require echoproof/laravel`, isi `ECHOPROOF_RECORD=true` di `.env`, dan traffic ditulis ke `storage/echoproof/traffic.jsonl` dengan aturan sensor yang sama.
+
 **3. Jalankan dua build**, versi sebelum perubahan (base) dan sesudahnya (PR), memakai database yang sama.
 
 **4. Bandingkan:**
