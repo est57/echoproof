@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2 - 2026-10-14
+
+- Record traffic from Laravel without a proxy with `composer require echoproof/laravel`, documented in both READMEs.
+- Releases publish to crates.io through trusted publishing and to the MCP Registry through GitHub OIDC, with no stored tokens. The Homebrew tap updates itself.
+
 ## 0.1.1 - 2026-10-14
 
 - MCP: the agent report now also travels in `structuredContent`, because some clients show only the structured result to the model.
