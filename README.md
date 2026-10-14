@@ -10,7 +10,7 @@
 
 Echoproof merekam request dan response asli dari service Anda, memutarnya ulang ke build hasil perubahan kode, lalu melaporkan **apa yang berubah, di endpoint dan field mana, pada berapa persen request, dan apakah perubahan itu memang diniatkan**. Hasilnya bisa dipakai sebagai gate di CI atau langsung oleh coding agent (Claude Code, Cursor, dan sejenisnya) untuk memeriksa pekerjaannya sendiri.
 
-<p align="center"><img src="docs/demo.svg" alt="Echoproof menangkap regresi harga yang tidak dijelaskan oleh niat perubahan" width="900"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/est57/echoproof/main/docs/demo.svg" alt="Echoproof menangkap regresi harga yang tidak dijelaskan oleh niat perubahan" width="900"></p>
 
 ```
 record  ->  replay ke build lama dan baru  ->  diff semantik  ->  nilai terhadap niat  ->  gate

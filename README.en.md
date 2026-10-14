@@ -10,7 +10,7 @@
 
 Echoproof records real requests and responses from your service, replays them against the build that contains a code change, and reports **what changed, on which endpoint and field, for what share of requests, and whether that change was intended**. Use the result as a merge gate in CI, or let a coding agent (Claude Code, Cursor and similar tools) check its own work directly.
 
-<p align="center"><img src="docs/demo.svg" alt="Echoproof catching a pricing regression that the change intent does not explain" width="900"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/est57/echoproof/main/docs/demo.svg" alt="Echoproof catching a pricing regression that the change intent does not explain" width="900"></p>
 
 ```
 record  ->  replay against old and new build  ->  semantic diff  ->  judge against intent  ->  gate
