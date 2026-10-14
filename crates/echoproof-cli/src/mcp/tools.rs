@@ -209,6 +209,8 @@ impl Server {
             "request": baseline.request,
             "baseline_response": baseline.response,
             "candidate_response": candidate.response,
+            "baseline_outbound": baseline.outbound,
+            "candidate_outbound": candidate.outbound,
             "changes": changes,
         });
         Ok((serde_json::to_string_pretty(&structured)?, structured))

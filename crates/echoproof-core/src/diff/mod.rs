@@ -1,5 +1,8 @@
 mod array;
 mod json;
+mod outbound;
+#[cfg(test)]
+mod outbound_tests;
 mod pattern;
 #[cfg(test)]
 mod tests;
@@ -35,6 +38,8 @@ pub enum ChangeKind {
     ItemAdded,
     OrderChanged,
     FieldAdded,
+    CallAdded,
+    CallRemoved,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -153,6 +158,12 @@ pub fn diff_exchange(
             b.preview(),
         )),
     }
+    outbound::diff(
+        baseline.outbound.as_deref(),
+        candidate.outbound.as_deref(),
+        options,
+        &mut changes,
+    );
     if !options.noise.is_empty() {
         let endpoint = baseline.endpoint();
         changes.retain(|c| !options.is_noise(&endpoint, &c.pattern));

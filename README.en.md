@@ -229,6 +229,18 @@ With `--intent`, each group of changes is judged by Claude and given a verdict o
 
 Intent judging requires an Anthropic API key. Each run makes one API call, and only when something changed. A typical run costs about USD 0.01 to 0.02 with the default model.
 
+### Third-party calls
+
+A service that calls payment gateways, messaging or other APIs must not reach them during a replay. With [echoproof/laravel](https://github.com/est57/echoproof-laravel), those calls are recorded with each request, and builds started with `ECHOPROOF_REPLAY=true` answer them from the recording and block everything else. Both builds therefore receive identical third-party responses, and Echoproof compares what each build *sent*:
+
+```text
+  x POST /checkout  3/3 changed (100.0%)  unexpected
+      behavior  value changed   outbound[POST pay.example.com/v2/charges] $.amount  (3 requests)
+            outbound[POST pay.example.com/v2/charges] $.amount: 18000 -> 1800000
+```
+
+The checkout response was identical in this example; only the amount sent to the gateway changed. A call that was never recorded is reported as `call added` with severity breaking. If a build reports calls that Echoproof cannot read, the request fails the check instead of passing unverified.
+
 ## Command reference
 
 | Command | Purpose |
@@ -446,7 +458,7 @@ The intent text, the code diff (when given), endpoint and field names, the numbe
 ## Limitations
 
 - **Write requests** need a test environment that can be reset. Without one, use safe mode, which only verifies read requests.
-- **External dependencies** such as payment gateways, SMS or third-party APIs are not mocked yet. Both the base and PR builds call them during replay.
+- **Third-party calls** are mocked only for Laravel apps that use the `Http` client, through echoproof/laravel. SDKs with their own HTTP client, other languages and non-HTTP dependencies (SMTP, queues) are still called for real during replay.
 - **IDs across requests** are not mapped yet. A recorded request such as `GET /orders/123` may refer to data that does not exist in the test environment.
 - **Request order** is preserved by replaying sequentially (`concurrency = 1`). Large traffic can be slow, and parallel replay is only safe for stateless endpoints.
 - **Changes that should have happened but did not** are hard to detect, because Echoproof reports requests that changed.

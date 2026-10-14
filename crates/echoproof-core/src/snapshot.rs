@@ -9,9 +9,27 @@ use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::path::Path;
 
 use crate::endpoint::endpoint_key;
+use crate::outbound::OutboundCall;
 
 /// Lowercased names; repeated headers are joined with ", ".
 pub type Headers = BTreeMap<String, String>;
+
+/// Accepts `[]` as no headers: PHP encodes an empty map as an empty list.
+pub fn headers_or_empty_list<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Headers, D::Error> {
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum Either {
+        Map(Headers),
+        List(Vec<Value>),
+    }
+    match Either::deserialize(deserializer)? {
+        Either::Map(map) => Ok(map),
+        Either::List(list) if list.is_empty() => Ok(Headers::new()),
+        Either::List(_) => Err(serde::de::Error::custom("headers must be an object")),
+    }
+}
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -67,7 +85,7 @@ pub struct Request {
     pub method: String,
     /// Includes the query string.
     pub path: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "headers_or_empty_list")]
     pub headers: Headers,
     #[serde(default)]
     pub body: Body,
@@ -76,7 +94,7 @@ pub struct Request {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Response {
     pub status: u16,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "headers_or_empty_list")]
     pub headers: Headers,
     #[serde(default)]
     pub body: Body,
@@ -94,6 +112,9 @@ pub struct Exchange {
     /// Set when the request was deliberately not sent (safe mode).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub skipped: Option<String>,
+    /// Calls to other services; `None` when they were not captured.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub outbound: Option<Vec<OutboundCall>>,
 }
 
 impl Exchange {

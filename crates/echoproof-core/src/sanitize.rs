@@ -39,6 +39,12 @@ impl Sanitizer {
         self.redact_headers(&mut exchange.response.headers);
         self.redact_body(&mut exchange.request.body);
         self.redact_body(&mut exchange.response.body);
+        for call in exchange.outbound.iter_mut().flatten() {
+            self.redact_headers(&mut call.request.headers);
+            self.redact_headers(&mut call.response.headers);
+            self.redact_body(&mut call.request.body);
+            self.redact_body(&mut call.response.body);
+        }
     }
 
     fn redact_headers(&self, headers: &mut Headers) {
@@ -114,6 +120,7 @@ mod tests {
                 latency_ms: 0,
             },
             skipped: None,
+            outbound: None,
         }
     }
 

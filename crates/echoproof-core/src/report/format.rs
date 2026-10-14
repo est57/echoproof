@@ -23,6 +23,8 @@ pub fn kind_label(kind: ChangeKind) -> &'static str {
         ChangeKind::ItemAdded => "item added",
         ChangeKind::OrderChanged => "order changed",
         ChangeKind::FieldAdded => "added",
+        ChangeKind::CallAdded => "call added",
+        ChangeKind::CallRemoved => "call removed",
     }
 }
 

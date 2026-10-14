@@ -1,3 +1,4 @@
+mod outbound;
 mod send;
 #[cfg(test)]
 mod tests;
@@ -156,5 +157,6 @@ fn skipped(exchange: &Exchange) -> Exchange {
             "{} is a write request (safe mode)",
             exchange.request.method
         )),
+        outbound: None,
     }
 }

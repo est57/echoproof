@@ -229,6 +229,18 @@ Dengan `--intent`, setiap kelompok perubahan dinilai oleh Claude dan diberi verd
 
 Penilaian niat membutuhkan API key Anthropic. Satu run melakukan satu panggilan API, dan hanya jika ada perubahan. Biaya tipikal sekitar USD 0,01 sampai 0,02 per run dengan model default.
 
+### Panggilan ke pihak ketiga
+
+Service yang memanggil payment gateway, layanan pesan, atau API lain tidak boleh benar-benar menghubunginya saat replay. Dengan [echoproof/laravel](https://github.com/est57/echoproof-laravel), panggilan itu direkam bersama setiap request, dan build yang dijalankan dengan `ECHOPROOF_REPLAY=true` menjawabnya dari rekaman serta memblokir semua panggilan lain. Kedua build menerima jawaban pihak ketiga yang identik, lalu Echoproof membandingkan apa yang *dikirim* setiap build:
+
+```text
+  x POST /checkout  3/3 changed (100.0%)  unexpected
+      behavior  value changed   outbound[POST pay.example.com/v2/charges] $.amount  (3 requests)
+            outbound[POST pay.example.com/v2/charges] $.amount: 18000 -> 1800000
+```
+
+Pada contoh ini response checkout identik; hanya nominal yang dikirim ke gateway yang berubah. Panggilan yang tidak pernah terekam dilaporkan sebagai `call added` dengan tingkat breaking. Kalau sebuah build melaporkan panggilan yang tidak bisa dibaca Echoproof, request itu gagal dalam check, bukan lolos tanpa verifikasi.
+
 ## Referensi perintah
 
 | Perintah | Fungsi |
@@ -446,7 +458,7 @@ Teks niat, diff kode (jika diberikan), nama endpoint dan field, jumlah request y
 ## Batasan
 
 - **Request tulis** membutuhkan lingkungan uji yang dapat di-reset. Tanpa itu, gunakan mode aman, yang hanya memverifikasi request baca.
-- **Dependency eksternal** seperti payment gateway, SMS, atau API pihak ketiga belum di-mock. Build base dan PR sama-sama memanggilnya saat replay.
+- **Panggilan ke pihak ketiga** baru di-mock untuk aplikasi Laravel yang memakai klien `Http`, lewat echoproof/laravel. SDK dengan klien HTTP sendiri, bahasa lain, dan dependency non-HTTP (SMTP, antrean) masih dipanggil sungguhan saat replay.
 - **ID antar-request** belum dipetakan. Request rekaman seperti `GET /orders/123` mungkin merujuk data yang tidak ada di lingkungan uji.
 - **Urutan request** dijaga dengan replay berurutan (`concurrency = 1`). Traffic besar bisa lambat, dan replay paralel hanya aman untuk endpoint tanpa state.
 - **Perubahan yang seharusnya terjadi tetapi tidak terjadi** sulit dideteksi, karena Echoproof melaporkan request yang berubah.

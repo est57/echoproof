@@ -23,6 +23,7 @@ fn exchange(id: &str, method: &str, path: &str, body: Value) -> Exchange {
             latency_ms: 0,
         },
         skipped: None,
+        outbound: None,
     }
 }
 

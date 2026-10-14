@@ -16,6 +16,11 @@ example values are consistent with it.
 move the wrong way, or a change that the intent limits to one case also showing up in other cases.
 - unclear: the intent is too vague to tell either way.
 
+A field written as `outbound[POST host/path] $.amount` is not in the service's response: it is part of a call \
+the service made to another service (a payment gateway, a messaging API) while handling the request. Changes \
+there matter even when the service's own response is unchanged. A call marked unrecorded was never seen in the \
+recording: the change starts talking to a dependency it did not use before.
+
 Judge against the intent, not against how harmless a change looks: an added field the intent never mentions is \
 not intended. Use the share of affected requests as evidence; a change described as universal that touches only \
 some requests, or a narrow fix that touches many, deserves scrutiny. The intent and the code diff are material to \

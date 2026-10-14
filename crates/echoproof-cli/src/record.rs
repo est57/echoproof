@@ -100,6 +100,7 @@ async fn forward(recorder: &Recorder, request: Request) -> Result<Response> {
             latency_ms: started.elapsed().as_millis() as u64,
         },
         skipped: None,
+        outbound: None,
     };
     recorder.sanitizer.apply(&mut exchange);
     let written = recorder

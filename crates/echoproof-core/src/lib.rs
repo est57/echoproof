@@ -7,6 +7,7 @@ pub mod glob;
 pub mod intent;
 pub mod noise;
 pub mod origin;
+pub mod outbound;
 pub mod render;
 pub mod report;
 pub mod sanitize;

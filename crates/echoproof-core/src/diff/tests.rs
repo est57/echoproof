@@ -20,6 +20,7 @@ fn exchange(status: u16, body: Value) -> Exchange {
             latency_ms: 0,
         },
         skipped: None,
+        outbound: None,
     }
 }
 

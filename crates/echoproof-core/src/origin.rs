@@ -68,6 +68,7 @@ mod tests {
                 latency_ms: 0,
             },
             skipped: None,
+            outbound: None,
         }];
         normalize(&mut exchanges, "http://127.0.0.1:8003");
         let response = &exchanges[0].response;
