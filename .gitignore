@@ -1,0 +1,18 @@
+/target
+/.parity-demo
+*.jsonl
+.env.local
+/.pos-test
+
+# Local Claude Code settings and data
+.claude/
+
+# Eval run output: keep results, drop bulky or derived files
+eval/judge/runs/**/traces/
+eval/judge/runs/**/report.html
+eval/judge/runs/**/state.json
+eval/judge/runs/**/trajectory/
+eval/judge/runs/**/progress.txt
+eval/judge/runs/**/errors.jsonl
+!eval/judge/runs/**/results.jsonl
+.DS_Store

@@ -1,0 +1,19 @@
+[package]
+name = "parity-core"
+description = "Snapshot format, semantic diff and reporting for Parity"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme = "../../README.en.md"
+
+[dependencies]
+anyhow.workspace = true
+base64.workspace = true
+regex.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+toml.workspace = true
