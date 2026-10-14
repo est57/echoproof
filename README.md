@@ -376,6 +376,10 @@ Exit code `1` menggagalkan job dan memblokir merge.
 
 ## Integrasi coding agent (MCP)
 
+<p align="center"><img src="https://raw.githubusercontent.com/est57/echoproof/main/docs/agent-demo.svg" alt="Coding agent menemukan dan memperbaiki bug diskon yang bukan buatannya, diverifikasi oleh Echoproof" width="900"></p>
+
+Dalam rekaman ini, Claude Code (Sonnet) diminta merapikan nama kasir di service order. Sebelumnya, bug diskon sudah ditanam di file yang sama. Pemeriksaan gagal, agent menelusuri regresi itu sampai ke bug yang bukan buatannya, memperbaikinya, dan baru menyatakan tugas selesai setelah pemeriksaan lulus.
+
 `echoproof mcp` menjalankan server [Model Context Protocol](https://modelcontextprotocol.io) melalui stdio, sehingga coding agent dapat memeriksa perubahan yang dibuatnya sendiri sebelum menyatakan pekerjaan selesai.
 
 **Claude Code** (jalankan dari root proyek yang berisi snapshot):

@@ -376,6 +376,10 @@ Exit code `1` fails the job and blocks the merge.
 
 ## Coding agent integration (MCP)
 
+<p align="center"><img src="https://raw.githubusercontent.com/est57/echoproof/main/docs/agent-demo.svg" alt="A coding agent finds and fixes a discount bug it did not write, verified by Echoproof" width="900"></p>
+
+In this recorded run, Claude Code (Sonnet) was asked to trim the cashier name in the order service. A discount bug had been planted in the same file beforehand. The check failed, the agent traced the regression to the bug it had not written, fixed it, and only reported the task done after the check passed.
+
 `echoproof mcp` runs a [Model Context Protocol](https://modelcontextprotocol.io) server over stdio, so a coding agent can check the changes it made before declaring the work done.
 
 **Claude Code** (run from the project root that holds the snapshot):
