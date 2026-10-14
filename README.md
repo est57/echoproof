@@ -56,6 +56,12 @@ Contoh yang ditangkap Echoproof: sebuah PR berniat "menambah field `currency` di
 
 ## Instalasi
 
+### Homebrew (macOS dan Linux)
+
+```bash
+brew install est57/tap/echoproof
+```
+
 ### Binary siap pakai (disarankan)
 
 Unduh arsip untuk platform Anda dari [halaman rilis](https://github.com/est57/echoproof/releases), atau lewat terminal:
@@ -349,30 +355,34 @@ echoproof accept candidate.jsonl --baseline traffic.jsonl
 
 ## Integrasi CI
 
-Contoh langkah di GitHub Actions:
+Gunakan [GitHub Action Echoproof](https://github.com/est57/echoproof-action). Action ini memasang binary rilis, menjalankan `echoproof check`, menulis laporan ke ringkasan job, dan menyediakan verdict sebagai output:
 
 ```yaml
-- name: Install Echoproof
-  run: cargo install --git https://github.com/est57/echoproof echoproof
-
 - name: Start base and PR builds
-  run: ./scripts/start-builds.sh   # base di :8001, PR di :8002, database uji yang sama
+  run: ./scripts/start-builds.sh   # base on :8001, PR on :8002, same test database
+
+- run: git diff origin/${{ github.base_ref }}...HEAD > change.diff
 
 - name: Behavior check
-  env:
-    ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-  run: |
-    echo "${{ github.event.pull_request.body }}" > pr.md
-    git diff origin/${{ github.base_ref }}...HEAD > change.diff
-    echoproof check -s traffic/baseline.jsonl --base http://127.0.0.1:8001 -t http://127.0.0.1:8002 \
-      --reset ./scripts/reset-db.sh --intent-file pr.md --code-diff change.diff --output echoproof.md
+  id: echoproof
+  uses: est57/echoproof-action@v1
+  with:
+    snapshot: traffic/baseline.jsonl
+    base: http://127.0.0.1:8001
+    target: http://127.0.0.1:8002
+    reset: ./scripts/reset-db.sh
+    intent: ${{ github.event.pull_request.title }}
+    code-diff: change.diff
+    anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
 
 - name: Comment on PR
   if: always()
-  run: gh pr comment ${{ github.event.number }} --body-file echoproof.md
+  run: gh pr comment ${{ github.event.number }} --body-file "${{ steps.echoproof.outputs.report }}"
+  env:
+    GH_TOKEN: ${{ github.token }}
 ```
 
-Exit code `1` menggagalkan job dan memblokir merge.
+Regresi menggagalkan step dan memblokir merge. Pakai `fail-on-regression: false` bila hanya ingin melapor. Di sistem CI lain, pasang binary-nya dan jalankan `echoproof check` langsung; exit code `1` berarti regresi.
 
 ## Integrasi coding agent (MCP)
 
@@ -393,6 +403,10 @@ claude mcp add echoproof -- echoproof mcp
 ```json
 { "mcpServers": { "echoproof": { "command": "echoproof", "args": ["mcp"] } } }
 ```
+
+Echoproof terdaftar di [MCP Registry resmi](https://registry.modelcontextprotocol.io) dengan nama:
+
+mcp-name: io.github.est57/echoproof
 
 | Tool | Input utama | Fungsi |
 |---|---|---|

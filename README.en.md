@@ -56,6 +56,12 @@ An example of what Echoproof catches: a pull request meant to "add a `currency` 
 
 ## Installation
 
+### Homebrew (macOS and Linux)
+
+```bash
+brew install est57/tap/echoproof
+```
+
 ### Prebuilt binary (recommended)
 
 Download the archive for your platform from the [releases page](https://github.com/est57/echoproof/releases), or from the terminal:
@@ -349,30 +355,34 @@ echoproof accept candidate.jsonl --baseline traffic.jsonl
 
 ## CI integration
 
-Example GitHub Actions steps:
+Use the [Echoproof GitHub Action](https://github.com/est57/echoproof-action). It installs the release binary, runs `echoproof check`, writes the report to the job summary and exposes the verdict as an output:
 
 ```yaml
-- name: Install Echoproof
-  run: cargo install --git https://github.com/est57/echoproof echoproof
-
 - name: Start base and PR builds
   run: ./scripts/start-builds.sh   # base on :8001, PR on :8002, same test database
 
+- run: git diff origin/${{ github.base_ref }}...HEAD > change.diff
+
 - name: Behavior check
-  env:
-    ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-  run: |
-    echo "${{ github.event.pull_request.body }}" > pr.md
-    git diff origin/${{ github.base_ref }}...HEAD > change.diff
-    echoproof check -s traffic/baseline.jsonl --base http://127.0.0.1:8001 -t http://127.0.0.1:8002 \
-      --reset ./scripts/reset-db.sh --intent-file pr.md --code-diff change.diff --output echoproof.md
+  id: echoproof
+  uses: est57/echoproof-action@v1
+  with:
+    snapshot: traffic/baseline.jsonl
+    base: http://127.0.0.1:8001
+    target: http://127.0.0.1:8002
+    reset: ./scripts/reset-db.sh
+    intent: ${{ github.event.pull_request.title }}
+    code-diff: change.diff
+    anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
 
 - name: Comment on PR
   if: always()
-  run: gh pr comment ${{ github.event.number }} --body-file echoproof.md
+  run: gh pr comment ${{ github.event.number }} --body-file "${{ steps.echoproof.outputs.report }}"
+  env:
+    GH_TOKEN: ${{ github.token }}
 ```
 
-Exit code `1` fails the job and blocks the merge.
+A regression fails the step and blocks the merge. Set `fail-on-regression: false` to only report. On other CI systems, install the binary and run `echoproof check` directly; exit code `1` means a regression.
 
 ## Coding agent integration (MCP)
 
@@ -393,6 +403,10 @@ claude mcp add echoproof -- echoproof mcp
 ```json
 { "mcpServers": { "echoproof": { "command": "echoproof", "args": ["mcp"] } } }
 ```
+
+Echoproof is listed in the [official MCP Registry](https://registry.modelcontextprotocol.io) under this name:
+
+mcp-name: io.github.est57/echoproof
 
 | Tool | Main inputs | Purpose |
 |---|---|---|
