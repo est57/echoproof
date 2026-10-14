@@ -46,10 +46,10 @@
     "eval/judge/judge-app.mjs",
     "eval/judge/runner/fs.mjs",
     "eval/judge/runner/harness.mjs",
-    "crates/parity-core/src/intent/mod.rs",
-    "crates/parity-core/src/intent/prompt.rs",
-    "crates/parity-cli/src/judge/mod.rs",
-    "crates/parity-cli/src/judge/api.rs"
+    "crates/echoproof-core/src/intent/mod.rs",
+    "crates/echoproof-core/src/intent/prompt.rs",
+    "crates/echoproof-cli/src/judge/mod.rs",
+    "crates/echoproof-cli/src/judge/api.rs"
   ],
   "harness_sha": "85c88e5dc471ba0140e0d6d4af06fa59170524b8ca8dfd159a87cd18004f2b50"
 }

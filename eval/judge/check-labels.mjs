@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { groupsOf, labelFor } from './grading.mjs';
 
 const cases = JSON.parse(readFileSync(new URL('./cases.json', import.meta.url)));
-const bin = new URL('../../target/release/parity', import.meta.url).pathname;
+const bin = new URL('../../target/release/echoproof', import.meta.url).pathname;
 const fix = new URL('./fixtures/', import.meta.url).pathname;
 let problems = 0;
 for (const c of cases) {

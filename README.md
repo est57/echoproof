@@ -1,10 +1,16 @@
-# Parity
+# Echoproof
+
+[![CI](https://github.com/est57/echoproof/actions/workflows/ci.yml/badge.svg)](https://github.com/est57/echoproof/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/est57/echoproof?sort=semver)](https://github.com/est57/echoproof/releases)
+[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#lisensi)
 
 **Bahasa Indonesia** | [English](README.en.md)
 
 **Verifikasi perilaku API untuk setiap perubahan kode, berdasarkan traffic nyata.**
 
-Parity merekam request dan response asli dari service Anda, memutarnya ulang ke build hasil perubahan kode, lalu melaporkan **apa yang berubah, di endpoint dan field mana, pada berapa persen request, dan apakah perubahan itu memang diniatkan**. Hasilnya bisa dipakai sebagai gate di CI atau langsung oleh coding agent (Claude Code, Cursor, dan sejenisnya) untuk memeriksa pekerjaannya sendiri.
+Echoproof merekam request dan response asli dari service Anda, memutarnya ulang ke build hasil perubahan kode, lalu melaporkan **apa yang berubah, di endpoint dan field mana, pada berapa persen request, dan apakah perubahan itu memang diniatkan**. Hasilnya bisa dipakai sebagai gate di CI atau langsung oleh coding agent (Claude Code, Cursor, dan sejenisnya) untuk memeriksa pekerjaannya sendiri.
+
+<p align="center"><img src="docs/demo.svg" alt="Echoproof menangkap regresi harga yang tidak dijelaskan oleh niat perubahan" width="900"></p>
 
 ```
 record  ->  replay ke build lama dan baru  ->  diff semantik  ->  nilai terhadap niat  ->  gate
@@ -12,7 +18,7 @@ record  ->  replay ke build lama dan baru  ->  diff semantik  ->  nilai terhadap
 
 ## Daftar isi
 
-- [Mengapa Parity](#mengapa-parity)
+- [Mengapa Echoproof](#mengapa-echoproof)
 - [Fitur utama](#fitur-utama)
 - [Instalasi](#instalasi)
 - [Mulai cepat](#mulai-cepat)
@@ -28,15 +34,15 @@ record  ->  replay ke build lama dan baru  ->  diff semantik  ->  nilai terhadap
 - [Pengembangan](#pengembangan)
 - [Lisensi](#lisensi)
 
-## Mengapa Parity
+## Mengapa Echoproof
 
 Saat sebagian besar kode ditulis oleh AI agent, jumlah perubahan naik jauh lebih cepat daripada kemampuan manusia untuk meninjaunya. Tes yang lulus dan diff yang tampak rapi belum menjamin perilaku sistem tetap benar, karena tes ditulis dari asumsi, sedangkan bug sering muncul dari kombinasi data nyata yang tidak terpikirkan.
 
-Parity menjawab satu pertanyaan yang tidak dijawab oleh tes unit maupun code review:
+Echoproof menjawab satu pertanyaan yang tidak dijawab oleh tes unit maupun code review:
 
 > Apakah perubahan ini mengubah perilaku sistem terhadap traffic nyata, dan apakah perubahan itu memang yang dimaksud?
 
-Contoh yang ditangkap Parity: sebuah PR berniat "menambah field `currency` di katalog", tetapi tanpa sengaja salah menempatkan satu argumen. Akibatnya harga 3 dari 8 menu berubah, sementara 5 menu lainnya tetap benar. Tes unit lulus dan diff kode terlihat wajar. Parity melaporkan `products[*].price: 18000 -> 22000` pada setiap request katalog dan menandainya sebagai regresi.
+Contoh yang ditangkap Echoproof: sebuah PR berniat "menambah field `currency` di katalog", tetapi tanpa sengaja salah menempatkan satu argumen. Akibatnya harga 3 dari 8 menu berubah, sementara 5 menu lainnya tetap benar. Tes unit lulus dan diff kode terlihat wajar. Echoproof melaporkan `products[*].price: 18000 -> 22000` pada setiap request katalog dan menandainya sebagai regresi.
 
 ## Fitur utama
 
@@ -52,19 +58,19 @@ Contoh yang ditangkap Parity: sebuah PR berniat "menambah field `currency` di ka
 **Kebutuhan:** Rust 1.85 atau lebih baru. `curl` diperlukan untuk menjalankan demo.
 
 ```bash
-git clone https://github.com/est57/parity.git
-cd parity
-cargo install --path crates/parity-cli
+git clone https://github.com/est57/echoproof.git
+cd echoproof
+cargo install --path crates/echoproof-cli
 ```
 
-Binary `parity` dipasang di `~/.cargo/bin`. Pastikan folder itu ada di `PATH`:
+Binary `echoproof` dipasang di `~/.cargo/bin`. Pastikan folder itu ada di `PATH`:
 
 ```bash
 echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
 ```
 
 ```bash
-parity --version
+echoproof --version
 ```
 
 ## Mulai cepat
@@ -74,13 +80,13 @@ Langkah berikut memeriksa sebuah perubahan kode pada service yang berjalan di li
 **1. Buat file konfigurasi** (opsional, semua pengaturan punya nilai default):
 
 ```bash
-parity init
+echoproof init
 ```
 
 **2. Rekam traffic.** Jalankan proxy di depan service, lalu arahkan aplikasi, Postman, atau tes otomatis ke alamat proxy:
 
 ```bash
-parity record --upstream http://127.0.0.1:8000 --listen 127.0.0.1:8080 --out traffic.jsonl
+echoproof record --upstream http://127.0.0.1:8000 --listen 127.0.0.1:8080 --out traffic.jsonl
 ```
 
 Hentikan dengan `Ctrl-C` setelah traffic yang representatif terkumpul.
@@ -90,7 +96,7 @@ Hentikan dengan `Ctrl-C` setelah traffic yang representatif terkumpul.
 **4. Bandingkan:**
 
 ```bash
-parity check -s traffic.jsonl --base http://127.0.0.1:8001 -t http://127.0.0.1:8002
+echoproof check -s traffic.jsonl --base http://127.0.0.1:8001 -t http://127.0.0.1:8002
 ```
 
 **5. Baca hasilnya.** Exit code `0` berarti tidak ada perubahan yang tidak diharapkan, `1` berarti ada regresi, `2` berarti terjadi error. Lihat [Membaca laporan](#membaca-laporan).
@@ -99,8 +105,8 @@ Untuk menilai perubahan terhadap niatnya, tambahkan deskripsi PR dan diff kodeny
 
 ```bash
 git diff main...HEAD > change.diff
-parity check -s traffic.jsonl --base http://127.0.0.1:8001 -t http://127.0.0.1:8002 \
-  --intent-file pr-description.md --code-diff change.diff --output parity-report.md
+echoproof check -s traffic.jsonl --base http://127.0.0.1:8001 -t http://127.0.0.1:8002 \
+  --intent-file pr-description.md --code-diff change.diff --output echoproof-report.md
 ```
 
 ## Demo
@@ -131,10 +137,10 @@ Snapshot adalah file JSONL berisi satu pasangan request dan response per baris. 
 
 | Mode | Perintah | Cocok untuk |
 |---|---|---|
-| Terhadap rekaman | `parity check -s traffic.jsonl -t URL_PR` | Service tanpa state, atau lingkungan yang datanya identik dengan saat perekaman |
-| Base vs PR | `parity check -s traffic.jsonl --base URL_BASE -t URL_PR` | Service dengan database (disarankan) |
+| Terhadap rekaman | `echoproof check -s traffic.jsonl -t URL_PR` | Service tanpa state, atau lingkungan yang datanya identik dengan saat perekaman |
+| Base vs PR | `echoproof check -s traffic.jsonl --base URL_BASE -t URL_PR` | Service dengan database (disarankan) |
 
-Pada mode **base vs PR**, response hasil rekaman tidak dipakai sebagai acuan. Parity memutar traffic yang sama ke kedua build di atas data yang sama:
+Pada mode **base vs PR**, response hasil rekaman tidak dipakai sebagai acuan. Echoproof memutar traffic yang sama ke kedua build di atas data yang sama:
 
 ```
 reset  ->  replay ke base         ->  acuan
@@ -152,10 +158,10 @@ Secara default, hanya method `GET`, `HEAD`, dan `OPTIONS` yang di-replay. Reques
 Izinkan request tulis per endpoint, hanya terhadap lingkungan yang boleh diubah atau dapat di-reset:
 
 ```bash
-parity check ... --allow-writes "POST /orders" --allow-writes "PUT /cart/*"
+echoproof check ... --allow-writes "POST /orders" --allow-writes "PUT /cart/*"
 ```
 
-Gunakan `--reset` (atau `replay.reset`) untuk mengembalikan state sebelum setiap putaran, misalnya dengan me-restore dump database atau memanggil endpoint reset di lingkungan uji. Parity menolak me-replay request tulis tanpa reset bila noise sedang dipelajari, karena perubahan state di antara run akan ikut dianggap noise dan menyembunyikan regresi.
+Gunakan `--reset` (atau `replay.reset`) untuk mengembalikan state sebelum setiap putaran, misalnya dengan me-restore dump database atau memanggil endpoint reset di lingkungan uji. Echoproof menolak me-replay request tulis tanpa reset bila noise sedang dipelajari, karena perubahan state di antara run akan ikut dianggap noise dan menyembunyikan regresi.
 
 ### Diff semantik
 
@@ -173,7 +179,7 @@ Gunakan `--reset` (atau `replay.reset`) untuk mengembalikan state sebelum setiap
 
 ### Niat perubahan
 
-Ada dua cara memberi tahu Parity perubahan apa yang diharapkan.
+Ada dua cara memberi tahu Echoproof perubahan apa yang diharapkan.
 
 | Cara | Tingkat | Kapan dipakai |
 |---|---|---|
@@ -190,20 +196,20 @@ Penilaian niat membutuhkan API key Anthropic. Satu run melakukan satu panggilan 
 
 | Perintah | Fungsi |
 |---|---|
-| `parity init` | Membuat `parity.toml` beserta penjelasan setiap pengaturan |
-| `parity record --upstream URL --out FILE` | Menjalankan reverse proxy yang merekam traffic |
-| `parity replay -s FILE -t URL -o FILE` | Me-replay snapshot ke target dan menyimpan response-nya |
-| `parity diff BASELINE CANDIDATE` | Membandingkan dua snapshot |
-| `parity check -s FILE -t URL` | Replay dan diff dalam satu langkah, terhadap rekaman |
-| `parity check -s FILE --base URL -t URL` | Replay dan diff, base vs PR pada state yang sama |
-| `parity accept CANDIDATE --baseline FILE` | Menjadikan response yang sudah ditinjau sebagai baseline baru |
-| `parity mcp` | Menjalankan server MCP untuk coding agent |
+| `echoproof init` | Membuat `echoproof.toml` beserta penjelasan setiap pengaturan |
+| `echoproof record --upstream URL --out FILE` | Menjalankan reverse proxy yang merekam traffic |
+| `echoproof replay -s FILE -t URL -o FILE` | Me-replay snapshot ke target dan menyimpan response-nya |
+| `echoproof diff BASELINE CANDIDATE` | Membandingkan dua snapshot |
+| `echoproof check -s FILE -t URL` | Replay dan diff dalam satu langkah, terhadap rekaman |
+| `echoproof check -s FILE --base URL -t URL` | Replay dan diff, base vs PR pada state yang sama |
+| `echoproof accept CANDIDATE --baseline FILE` | Menjadikan response yang sudah ditinjau sebagai baseline baru |
+| `echoproof mcp` | Menjalankan server MCP untuk coding agent |
 
 Opsi umum:
 
 | Opsi | Berlaku untuk | Keterangan |
 |---|---|---|
-| `--config FILE` | semua | File konfigurasi, default `parity.toml` |
+| `--config FILE` | semua | File konfigurasi, default `echoproof.toml` |
 | `--expect PATTERN` | `diff`, `check` | Endpoint yang diharapkan berubah. Dapat diulang |
 | `--intent TEXT`, `--intent-file FILE` | `diff`, `check` | Niat perubahan untuk dinilai oleh Claude |
 | `--code-diff FILE` | `diff`, `check` | Diff kode sebagai bahan penilaian niat |
@@ -223,7 +229,7 @@ Pola endpoint: `POST /orders`, `GET /products/*` (`*` cocok dengan satu segmen),
 
 ## Konfigurasi
 
-Semua pengaturan bersifat opsional. Jalankan `parity init` untuk membuat file berisi seluruh pengaturan beserta penjelasannya.
+Semua pengaturan bersifat opsional. Jalankan `echoproof init` untuk membuat file berisi seluruh pengaturan beserta penjelasannya.
 
 ```toml
 [record]
@@ -268,14 +274,14 @@ Pola `ignore`: nama saja (`updated_at`) cocok di kedalaman mana pun. Pola yang d
 | `ANTHROPIC_API_KEY` | API key untuk penilaian niat (alternatif: `ANTHROPIC_AUTH_TOKEN`) |
 | `ANTHROPIC_WORKSPACE_ID` | Wajib jika API key tidak terikat ke satu workspace |
 | `ANTHROPIC_BASE_URL` | Endpoint API alternatif. Harus `https`, kecuali `localhost` |
-| `PARITY_JUDGE_TRACE` | Menyimpan request dan response penilai ke file (izin `0600`) untuk debugging |
+| `ECHOPROOF_JUDGE_TRACE` | Menyimpan request dan response penilai ke file (izin `0600`) untuk debugging |
 
 ## Membaca laporan
 
 Contoh laporan di terminal:
 
 ```
-parity: REGRESSION - 83 exchanges, 5 changed, 78 unchanged
+echoproof: REGRESSION - 83 exchanges, 5 changed, 78 unchanged
   ignored 1 noisy fields that differ between runs of the base build: GET /up body
   intent judged by claude-opus-5-5: The currency field is added as intended. ...
 
@@ -308,8 +314,8 @@ Format lain:
 Setelah perubahan ditinjau dan disetujui, jadikan hasilnya baseline baru:
 
 ```bash
-parity replay -s traffic.jsonl -t URL_PR -o candidate.jsonl
-parity accept candidate.jsonl --baseline traffic.jsonl
+echoproof replay -s traffic.jsonl -t URL_PR -o candidate.jsonl
+echoproof accept candidate.jsonl --baseline traffic.jsonl
 ```
 
 ## Integrasi CI
@@ -317,8 +323,8 @@ parity accept candidate.jsonl --baseline traffic.jsonl
 Contoh langkah di GitHub Actions:
 
 ```yaml
-- name: Install Parity
-  run: cargo install --git https://github.com/est57/parity parity-cli
+- name: Install Echoproof
+  run: cargo install --git https://github.com/est57/echoproof echoproof
 
 - name: Start base and PR builds
   run: ./scripts/start-builds.sh   # base di :8001, PR di :8002, database uji yang sama
@@ -329,39 +335,39 @@ Contoh langkah di GitHub Actions:
   run: |
     echo "${{ github.event.pull_request.body }}" > pr.md
     git diff origin/${{ github.base_ref }}...HEAD > change.diff
-    parity check -s traffic/baseline.jsonl --base http://127.0.0.1:8001 -t http://127.0.0.1:8002 \
-      --reset ./scripts/reset-db.sh --intent-file pr.md --code-diff change.diff --output parity.md
+    echoproof check -s traffic/baseline.jsonl --base http://127.0.0.1:8001 -t http://127.0.0.1:8002 \
+      --reset ./scripts/reset-db.sh --intent-file pr.md --code-diff change.diff --output echoproof.md
 
 - name: Comment on PR
   if: always()
-  run: gh pr comment ${{ github.event.number }} --body-file parity.md
+  run: gh pr comment ${{ github.event.number }} --body-file echoproof.md
 ```
 
 Exit code `1` menggagalkan job dan memblokir merge.
 
 ## Integrasi coding agent (MCP)
 
-`parity mcp` menjalankan server [Model Context Protocol](https://modelcontextprotocol.io) melalui stdio, sehingga coding agent dapat memeriksa perubahan yang dibuatnya sendiri sebelum menyatakan pekerjaan selesai.
+`echoproof mcp` menjalankan server [Model Context Protocol](https://modelcontextprotocol.io) melalui stdio, sehingga coding agent dapat memeriksa perubahan yang dibuatnya sendiri sebelum menyatakan pekerjaan selesai.
 
 **Claude Code** (jalankan dari root proyek yang berisi snapshot):
 
 ```bash
-claude mcp add parity -- parity mcp
+claude mcp add echoproof -- echoproof mcp
 ```
 
 **Klien lain** (`.mcp.json`):
 
 ```json
-{ "mcpServers": { "parity": { "command": "parity", "args": ["mcp"] } } }
+{ "mcpServers": { "echoproof": { "command": "echoproof", "args": ["mcp"] } } }
 ```
 
 | Tool | Input utama | Fungsi |
 |---|---|---|
-| `parity_check` | `snapshot`, `target`, `base`, `intent`, `expect`, `allow_writes` | Replay dan diff. Mengembalikan laporan untuk agent, JSON terstruktur, dan `run_id` |
-| `parity_diff` | `baseline`, `candidate`, `intent`, `expect` | Membandingkan dua snapshot yang sudah ada |
-| `parity_exchange` | `run_id`, `id` | Request lengkap, response acuan dan kandidat, serta perubahan per field |
+| `echoproof_check` | `snapshot`, `target`, `base`, `intent`, `expect`, `allow_writes` | Replay dan diff. Mengembalikan laporan untuk agent, JSON terstruktur, dan `run_id` |
+| `echoproof_diff` | `baseline`, `candidate`, `intent`, `expect` | Membandingkan dua snapshot yang sudah ada |
+| `echoproof_exchange` | `run_id`, `id` | Request lengkap, response acuan dan kandidat, serta perubahan per field |
 
-Alur kerja agent: mengubah kode, menjalankan build, memanggil `parity_check` dengan tugasnya sebagai `intent`, lalu jika hasilnya regresi, membuka contoh dengan `parity_exchange`, memperbaiki kode, dan memeriksa ulang. Server sengaja tidak menyediakan `accept`, karena menyetujui baseline baru tetap keputusan manusia.
+Alur kerja agent: mengubah kode, menjalankan build, memanggil `echoproof_check` dengan tugasnya sebagai `intent`, lalu jika hasilnya regresi, membuka contoh dengan `echoproof_exchange`, memperbaiki kode, dan memeriksa ulang. Server sengaja tidak menyediakan `accept`, karena menyetujui baseline baru tetap keputusan manusia.
 
 ## Keamanan dan privasi
 
@@ -386,7 +392,7 @@ Teks niat, diff kode (jika diberikan), nama endpoint dan field, jumlah request y
 
 - `target` dan `base` hanya boleh `localhost`, kecuali host didaftarkan di `[mcp] allowed_hosts`. Replay membawa header dari `replay.headers`, sehingga agent tidak boleh dapat mengirimnya ke host lain.
 - Path file (`snapshot`, `save`, `code_diff_file`) harus berada di dalam folder proyek. Symlink ke luar folder ditolak.
-- Perintah reset hanya dibaca dari `parity.toml`, tidak pernah dari agent.
+- Perintah reset hanya dibaca dari `echoproof.toml`, tidak pernah dari agent.
 
 ## Batasan
 
@@ -394,7 +400,7 @@ Teks niat, diff kode (jika diberikan), nama endpoint dan field, jumlah request y
 - **Dependency eksternal** seperti payment gateway, SMS, atau API pihak ketiga belum di-mock. Build base dan PR sama-sama memanggilnya saat replay.
 - **ID antar-request** belum dipetakan. Request rekaman seperti `GET /orders/123` mungkin merujuk data yang tidak ada di lingkungan uji.
 - **Urutan request** dijaga dengan replay berurutan (`concurrency = 1`). Traffic besar bisa lambat, dan replay paralel hanya aman untuk endpoint tanpa state.
-- **Perubahan yang seharusnya terjadi tetapi tidak terjadi** sulit dideteksi, karena Parity melaporkan request yang berubah.
+- **Perubahan yang seharusnya terjadi tetapi tidak terjadi** sulit dideteksi, karena Echoproof melaporkan request yang berubah.
 - **Noise yang jarang muncul** dapat lolos dari satu run pembelajaran. Naikkan `--noise-runs` atau tambahkan pola `ignore` bila perlu.
 
 ## Pengembangan
@@ -402,8 +408,8 @@ Teks niat, diff kode (jika diberikan), nama endpoint dan field, jumlah request y
 **Struktur repository**
 
 ```
-crates/parity-core     format snapshot, sanitasi, diff, laporan, penilaian niat
-crates/parity-cli      binary `parity`: perekam, replay, CLI, server MCP
+crates/echoproof-core     format snapshot, sanitasi, diff, laporan, penilaian niat
+crates/echoproof-cli      binary `echoproof`: perekam, replay, CLI, server MCP
 examples/demo-shop     backend POS untuk demo dan eval
 eval/judge             eval penilai niat: kasus uji, runner, dan grader
 scripts/demo.sh        demo end-to-end
@@ -430,7 +436,7 @@ Runner menolak berjalan sampai harness disetujui sekali dengan `--approve-harnes
 
 ## Lisensi
 
-Parity dilisensikan di bawah salah satu dari dua lisensi berikut, sesuai pilihan Anda:
+Echoproof dilisensikan di bawah salah satu dari dua lisensi berikut, sesuai pilihan Anda:
 
 - Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE))
 - MIT License ([LICENSE-MIT](LICENSE-MIT))

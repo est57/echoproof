@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Eval runner for Parity's intent judge, built from the claude-api skill's runner scaffold.
+// Eval runner for Echoproof's intent judge, built from the claude-api skill's runner scaffold.
 //   node eval/judge/run-eval.mjs --flow eval/judge/runs/intent-judge --variant baseline --reps 3
 import { mkdirSync } from 'node:fs';
 import { isAbsolute, join } from 'node:path';

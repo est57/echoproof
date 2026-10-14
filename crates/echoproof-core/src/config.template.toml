@@ -1,0 +1,42 @@
+# Echoproof configuration. Every key is optional.
+
+[record]
+# upstream = "http://127.0.0.1:3000"
+listen = "127.0.0.1:8080"
+
+[sanitize]
+redact_headers = ["authorization", "proxy-authorization", "cookie", "set-cookie", "x-api-key"]
+# Exact names redact any value; patterns with * redact string values only.
+redact_fields = ["password", "token", "access_token", "refresh_token", "secret", "api_key", "card_number", "cvv", "pin",
+                 "otp", "*password*", "*secret*", "*token*", "*_hash", "pin_*", "*_pin", "*_otp"]
+
+[replay]
+concurrency = 1
+timeout_ms = 10000
+# headers = { authorization = "Bearer ${STAGING_TOKEN}" }
+# Safe mode: only these methods are replayed; other requests are skipped
+# unless their endpoint is listed in allow_writes.
+safe_methods = ["GET", "HEAD", "OPTIONS"]
+# allow_writes = ["POST /orders"]
+# Restores state before every replay pass (check --base runs base, base again
+# to learn noise, then the candidate).
+# reset = "./scripts/reset-staging-db.sh"
+noise_runs = 1
+
+[diff]
+auto_noise = true
+compare_headers = ["content-type"]
+# ignore = ["updated_at", "$.meta.trace_id", "items[*].etag"]
+# expect = ["GET /products/*"]
+
+# Used when an intent is given (--intent / --intent-file, or `intent` over MCP).
+# Needs ANTHROPIC_API_KEY (or ANTHROPIC_AUTH_TOKEN) in the environment.
+[judge]
+model = "claude-opus-5-5"
+effort = "high"
+fallbacks = true
+
+# Coding agents (echoproof mcp) may only replay against localhost unless the host
+# is listed here. Replays carry replay.headers, so keep this list short.
+[mcp]
+# allowed_hosts = ["staging.internal"]

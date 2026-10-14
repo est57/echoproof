@@ -1,4 +1,4 @@
-//! Small POS backend with stock (state) for the Parity demo and eval.
+//! Small POS backend with stock (state) for the Echoproof demo and eval.
 
 mod mutations;
 

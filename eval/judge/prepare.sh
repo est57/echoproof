@@ -9,14 +9,14 @@ BIN=$ROOT/target/release
 FIX=fixtures
 PROD=39300 PR=39301 PROXY=39380
 
-cargo build --release -q --manifest-path $ROOT/Cargo.toml -p parity-cli -p demo-shop
+cargo build --release -q --manifest-path $ROOT/Cargo.toml -p echoproof -p demo-shop
 rm -rf "$FIX" && mkdir -p "$FIX"
 trap 'kill $(jobs -p) 2>/dev/null || true' EXIT
 wait_for() { for _ in $(seq 50); do curl -sf "$1" >/dev/null && return; sleep 0.1; done; echo "timeout: $1"; exit 1; }
 
 PORT=$PROD $BIN/demo-shop 2>/dev/null &
 wait_for "http://127.0.0.1:$PROD/health"
-$BIN/parity --config /dev/null record --upstream "http://127.0.0.1:$PROD" --listen "127.0.0.1:$PROXY" --out "$FIX/baseline.jsonl" 2>/dev/null &
+$BIN/echoproof --config /dev/null record --upstream "http://127.0.0.1:$PROD" --listen "127.0.0.1:$PROXY" --out "$FIX/baseline.jsonl" 2>/dev/null &
 RECORDER=$!
 wait_for "http://127.0.0.1:$PROXY/health"
 $BIN/demo-traffic --target "http://127.0.0.1:$PROXY" -n 2000 2>/dev/null
@@ -27,7 +27,7 @@ for row in $(node -e 'for (const c of require("./cases.json")) console.log(c.id 
   DEMO_MUTATIONS=$muts PORT=$PR $BIN/demo-shop 2>/dev/null &
   SHOP=$!
   wait_for "http://127.0.0.1:$PR/health"
-  $BIN/parity --config /dev/null replay -s "$FIX/baseline.jsonl" -t "http://127.0.0.1:$PR" -o "$FIX/$id.jsonl" --allow-writes "*" 2>/dev/null
+  $BIN/echoproof --config /dev/null replay -s "$FIX/baseline.jsonl" -t "http://127.0.0.1:$PR" -o "$FIX/$id.jsonl" --allow-writes "*" 2>/dev/null
   kill $SHOP && wait $SHOP 2>/dev/null || true
 done
 echo "fixtures: $(ls $FIX | wc -l | tr -d ' ') files in eval/judge/$FIX"

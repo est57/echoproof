@@ -1,5 +1,5 @@
 /target
-/.parity-demo
+/.echoproof-demo
 *.jsonl
 .env.local
 /.pos-test
@@ -16,3 +16,6 @@ eval/judge/runs/**/progress.txt
 eval/judge/runs/**/errors.jsonl
 !eval/judge/runs/**/results.jsonl
 .DS_Store
+
+# Launch drafts (not part of the project)
+/launch

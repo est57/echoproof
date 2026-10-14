@@ -1,4 +1,4 @@
-// Runs Parity's intent judge through its real entry point (`parity diff --intent`)
+// Runs Echoproof's intent judge through its real entry point (`echoproof diff --intent`)
 // and grades each judged change group against its label.
 
 import { execFile } from 'node:child_process';
@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { score } from './grading.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const PARITY = join(HERE, '../../target/release/parity');
+const ECHOPROOF = join(HERE, '../../target/release/echoproof');
 const FIXTURES = join(HERE, 'fixtures');
 const DEFAULT_MODEL = 'claude-opus-5-5';
 const EFFORT = process.env.JUDGE_EFFORT || 'high';
@@ -34,16 +34,16 @@ export async function loadCases() {
   }));
 }
 
-function runParity(args, env) {
+function runEchoproof(args, env) {
   return new Promise((resolvePromise) => {
-    execFile(PARITY, args, { env, maxBuffer: 64 * 1024 * 1024 }, (error, stdout, stderr) =>
+    execFile(ECHOPROOF, args, { env, maxBuffer: 64 * 1024 * 1024 }, (error, stdout, stderr) =>
       resolvePromise({ code: error ? (error.code ?? 1) : 0, stdout, stderr }));
   });
 }
 
 /** EVAL_MOCK_URL points the judge at mock-api.py; the case id in the path selects its labels. */
 function judgeEnv(input, tracePath) {
-  const env = { ...process.env, PARITY_JUDGE_TRACE: tracePath };
+  const env = { ...process.env, ECHOPROOF_JUDGE_TRACE: tracePath };
   if (process.env.EVAL_MOCK_URL) {
     env.ANTHROPIC_BASE_URL = `${process.env.EVAL_MOCK_URL}/${input.id}`;
     env.ANTHROPIC_API_KEY = 'mock';
@@ -53,17 +53,17 @@ function judgeEnv(input, tracePath) {
 
 export async function runCase(input, ctx) {
   const model = ctx.model ?? DEFAULT_MODEL;
-  const dir = mkdtempSync(join(tmpdir(), 'parity-eval-'));
+  const dir = mkdtempSync(join(tmpdir(), 'echoproof-eval-'));
   try {
-    const config = join(dir, 'parity.toml');
+    const config = join(dir, 'echoproof.toml');
     const tracePath = join(dir, 'trace.json');
     writeFileSync(config, `[judge]\nmodel = ${JSON.stringify(model)}\neffort = ${JSON.stringify(EFFORT)}\nfallbacks = true\n`);
-    const { code, stdout, stderr } = await runParity(
+    const { code, stdout, stderr } = await runEchoproof(
       ['--config', config, 'diff', join(FIXTURES, 'baseline.jsonl'), join(FIXTURES, `${input.id}.jsonl`),
        '--intent', input.intent, '--format', 'json', '--max-examples', '3'],
       judgeEnv(input, tracePath));
     if (code !== 0 && code !== 1) {
-      const message = stderr.trim().split('\n').pop() || `parity exited ${code}`;
+      const message = stderr.trim().split('\n').pop() || `echoproof exited ${code}`;
       const e = new Error(message);
       if (/declined the request/.test(message)) e.failure_class = 'refusal';
       else if (/cut off at max_tokens/.test(message)) e.failure_class = 'truncated';

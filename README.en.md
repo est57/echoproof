@@ -1,10 +1,16 @@
-# Parity
+# Echoproof
+
+[![CI](https://github.com/est57/echoproof/actions/workflows/ci.yml/badge.svg)](https://github.com/est57/echoproof/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/est57/echoproof?sort=semver)](https://github.com/est57/echoproof/releases)
+[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
 [Bahasa Indonesia](README.md) | **English**
 
 **Behavioral verification for every code change, based on real traffic.**
 
-Parity records real requests and responses from your service, replays them against the build that contains a code change, and reports **what changed, on which endpoint and field, for what share of requests, and whether that change was intended**. Use the result as a merge gate in CI, or let a coding agent (Claude Code, Cursor and similar tools) check its own work directly.
+Echoproof records real requests and responses from your service, replays them against the build that contains a code change, and reports **what changed, on which endpoint and field, for what share of requests, and whether that change was intended**. Use the result as a merge gate in CI, or let a coding agent (Claude Code, Cursor and similar tools) check its own work directly.
+
+<p align="center"><img src="docs/demo.svg" alt="Echoproof catching a pricing regression that the change intent does not explain" width="900"></p>
 
 ```
 record  ->  replay against old and new build  ->  semantic diff  ->  judge against intent  ->  gate
@@ -12,7 +18,7 @@ record  ->  replay against old and new build  ->  semantic diff  ->  judge again
 
 ## Contents
 
-- [Why Parity](#why-parity)
+- [Why Echoproof](#why-echoproof)
 - [Key features](#key-features)
 - [Installation](#installation)
 - [Quick start](#quick-start)
@@ -28,15 +34,15 @@ record  ->  replay against old and new build  ->  semantic diff  ->  judge again
 - [Development](#development)
 - [License](#license)
 
-## Why Parity
+## Why Echoproof
 
 When much of the code is written by AI agents, the number of changes grows far faster than people can review them. Passing tests and a tidy-looking diff do not guarantee that the system still behaves correctly: tests are written from assumptions, while bugs often come from real combinations of data that nobody thought of.
 
-Parity answers a question that neither unit tests nor code review answer:
+Echoproof answers a question that neither unit tests nor code review answer:
 
 > Does this change alter how the system behaves on real traffic, and is that the change that was meant?
 
-An example of what Parity catches: a pull request meant to "add a `currency` field to the catalog" accidentally passes one argument in the wrong position. As a result, the price of 3 out of 8 menu items changes while the other 5 stay correct. Unit tests pass and the code diff looks reasonable. Parity reports `products[*].price: 18000 -> 22000` on every catalog request and flags it as a regression.
+An example of what Echoproof catches: a pull request meant to "add a `currency` field to the catalog" accidentally passes one argument in the wrong position. As a result, the price of 3 out of 8 menu items changes while the other 5 stay correct. Unit tests pass and the code diff looks reasonable. Echoproof reports `products[*].price: 18000 -> 22000` on every catalog request and flags it as a regression.
 
 ## Key features
 
@@ -52,19 +58,19 @@ An example of what Parity catches: a pull request meant to "add a `currency` fie
 **Requirements:** Rust 1.85 or later. `curl` is needed to run the demo.
 
 ```bash
-git clone https://github.com/est57/parity.git
-cd parity
-cargo install --path crates/parity-cli
+git clone https://github.com/est57/echoproof.git
+cd echoproof
+cargo install --path crates/echoproof-cli
 ```
 
-The `parity` binary is installed in `~/.cargo/bin`. Make sure that directory is on your `PATH`:
+The `echoproof` binary is installed in `~/.cargo/bin`. Make sure that directory is on your `PATH`:
 
 ```bash
 echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
 ```
 
 ```bash
-parity --version
+echoproof --version
 ```
 
 ## Quick start
@@ -74,13 +80,13 @@ These steps check a code change on a service running in your test environment.
 **1. Create a configuration file** (optional; every setting has a default):
 
 ```bash
-parity init
+echoproof init
 ```
 
 **2. Record traffic.** Run the proxy in front of the service, then point your app, Postman or automated tests at the proxy address:
 
 ```bash
-parity record --upstream http://127.0.0.1:8000 --listen 127.0.0.1:8080 --out traffic.jsonl
+echoproof record --upstream http://127.0.0.1:8000 --listen 127.0.0.1:8080 --out traffic.jsonl
 ```
 
 Stop it with `Ctrl-C` once representative traffic has been collected.
@@ -90,7 +96,7 @@ Stop it with `Ctrl-C` once representative traffic has been collected.
 **4. Compare:**
 
 ```bash
-parity check -s traffic.jsonl --base http://127.0.0.1:8001 -t http://127.0.0.1:8002
+echoproof check -s traffic.jsonl --base http://127.0.0.1:8001 -t http://127.0.0.1:8002
 ```
 
 **5. Read the result.** Exit code `0` means no unexpected changes, `1` means a regression was found, and `2` means an error occurred. See [Reading the report](#reading-the-report).
@@ -99,8 +105,8 @@ To judge the changes against their intent, add the pull request description and 
 
 ```bash
 git diff main...HEAD > change.diff
-parity check -s traffic.jsonl --base http://127.0.0.1:8001 -t http://127.0.0.1:8002 \
-  --intent-file pr-description.md --code-diff change.diff --output parity-report.md
+echoproof check -s traffic.jsonl --base http://127.0.0.1:8001 -t http://127.0.0.1:8002 \
+  --intent-file pr-description.md --code-diff change.diff --output echoproof-report.md
 ```
 
 ## Demo
@@ -131,10 +137,10 @@ A snapshot is a JSONL file with one request and response pair per line. Headers 
 
 | Mode | Command | Suited for |
 |---|---|---|
-| Against the recording | `parity check -s traffic.jsonl -t URL_PR` | Stateless services, or environments whose data matches the time of recording |
-| Base vs PR | `parity check -s traffic.jsonl --base URL_BASE -t URL_PR` | Services backed by a database (recommended) |
+| Against the recording | `echoproof check -s traffic.jsonl -t URL_PR` | Stateless services, or environments whose data matches the time of recording |
+| Base vs PR | `echoproof check -s traffic.jsonl --base URL_BASE -t URL_PR` | Services backed by a database (recommended) |
 
-In **base vs PR** mode, the recorded responses are not used as the reference. Parity replays the same traffic against both builds on the same data:
+In **base vs PR** mode, the recorded responses are not used as the reference. Echoproof replays the same traffic against both builds on the same data:
 
 ```
 reset  ->  replay against base        ->  reference
@@ -152,10 +158,10 @@ By default only `GET`, `HEAD` and `OPTIONS` requests are replayed. Write request
 Allow write requests per endpoint, and only against an environment that may be modified or can be reset:
 
 ```bash
-parity check ... --allow-writes "POST /orders" --allow-writes "PUT /cart/*"
+echoproof check ... --allow-writes "POST /orders" --allow-writes "PUT /cart/*"
 ```
 
-Use `--reset` (or `replay.reset`) to restore state before every pass, for example by restoring a database dump or calling a reset endpoint in the test environment. Parity refuses to replay write requests without a reset while noise is being learned, because state changes between runs would be learned as noise and hide regressions.
+Use `--reset` (or `replay.reset`) to restore state before every pass, for example by restoring a database dump or calling a reset endpoint in the test environment. Echoproof refuses to replay write requests without a reset while noise is being learned, because state changes between runs would be learned as noise and hide regressions.
 
 ### Semantic diff
 
@@ -173,7 +179,7 @@ Use `--reset` (or `replay.reset`) to restore state before every pass, for exampl
 
 ### Change intent
 
-There are two ways to tell Parity which changes are expected.
+There are two ways to tell Echoproof which changes are expected.
 
 | Option | Granularity | When to use it |
 |---|---|---|
@@ -190,20 +196,20 @@ Intent judging requires an Anthropic API key. Each run makes one API call, and o
 
 | Command | Purpose |
 |---|---|
-| `parity init` | Writes `parity.toml` with every setting explained |
-| `parity record --upstream URL --out FILE` | Runs a reverse proxy that records traffic |
-| `parity replay -s FILE -t URL -o FILE` | Replays a snapshot against a target and saves its responses |
-| `parity diff BASELINE CANDIDATE` | Compares two snapshots |
-| `parity check -s FILE -t URL` | Replays and diffs in one step, against the recording |
-| `parity check -s FILE --base URL -t URL` | Replays and diffs, base vs PR on the same state |
-| `parity accept CANDIDATE --baseline FILE` | Makes reviewed responses the new baseline |
-| `parity mcp` | Runs the MCP server for coding agents |
+| `echoproof init` | Writes `echoproof.toml` with every setting explained |
+| `echoproof record --upstream URL --out FILE` | Runs a reverse proxy that records traffic |
+| `echoproof replay -s FILE -t URL -o FILE` | Replays a snapshot against a target and saves its responses |
+| `echoproof diff BASELINE CANDIDATE` | Compares two snapshots |
+| `echoproof check -s FILE -t URL` | Replays and diffs in one step, against the recording |
+| `echoproof check -s FILE --base URL -t URL` | Replays and diffs, base vs PR on the same state |
+| `echoproof accept CANDIDATE --baseline FILE` | Makes reviewed responses the new baseline |
+| `echoproof mcp` | Runs the MCP server for coding agents |
 
 Common options:
 
 | Option | Applies to | Description |
 |---|---|---|
-| `--config FILE` | all | Configuration file, default `parity.toml` |
+| `--config FILE` | all | Configuration file, default `echoproof.toml` |
 | `--expect PATTERN` | `diff`, `check` | Endpoint expected to change. Repeatable |
 | `--intent TEXT`, `--intent-file FILE` | `diff`, `check` | Change intent to be judged by Claude |
 | `--code-diff FILE` | `diff`, `check` | Code diff given to the intent judge |
@@ -223,7 +229,7 @@ Endpoint patterns: `POST /orders`, `GET /products/*` (`*` matches one segment), 
 
 ## Configuration
 
-Every setting is optional. Run `parity init` to create a file with all settings and their explanations.
+Every setting is optional. Run `echoproof init` to create a file with all settings and their explanations.
 
 ```toml
 [record]
@@ -268,14 +274,14 @@ allowed_hosts = []                                       # hosts besides localho
 | `ANTHROPIC_API_KEY` | API key for intent judging (alternative: `ANTHROPIC_AUTH_TOKEN`) |
 | `ANTHROPIC_WORKSPACE_ID` | Required when the API key is not scoped to a single workspace |
 | `ANTHROPIC_BASE_URL` | Alternative API endpoint. Must use `https`, except for `localhost` |
-| `PARITY_JUDGE_TRACE` | Saves the judge's request and response to a file (mode `0600`) for debugging |
+| `ECHOPROOF_JUDGE_TRACE` | Saves the judge's request and response to a file (mode `0600`) for debugging |
 
 ## Reading the report
 
 Example terminal report:
 
 ```
-parity: REGRESSION - 83 exchanges, 5 changed, 78 unchanged
+echoproof: REGRESSION - 83 exchanges, 5 changed, 78 unchanged
   ignored 1 noisy fields that differ between runs of the base build: GET /up body
   intent judged by claude-opus-5-5: The currency field is added as intended. ...
 
@@ -308,8 +314,8 @@ Other formats:
 Once changes have been reviewed and approved, make the result the new baseline:
 
 ```bash
-parity replay -s traffic.jsonl -t URL_PR -o candidate.jsonl
-parity accept candidate.jsonl --baseline traffic.jsonl
+echoproof replay -s traffic.jsonl -t URL_PR -o candidate.jsonl
+echoproof accept candidate.jsonl --baseline traffic.jsonl
 ```
 
 ## CI integration
@@ -317,8 +323,8 @@ parity accept candidate.jsonl --baseline traffic.jsonl
 Example GitHub Actions steps:
 
 ```yaml
-- name: Install Parity
-  run: cargo install --git https://github.com/est57/parity parity-cli
+- name: Install Echoproof
+  run: cargo install --git https://github.com/est57/echoproof echoproof
 
 - name: Start base and PR builds
   run: ./scripts/start-builds.sh   # base on :8001, PR on :8002, same test database
@@ -329,39 +335,39 @@ Example GitHub Actions steps:
   run: |
     echo "${{ github.event.pull_request.body }}" > pr.md
     git diff origin/${{ github.base_ref }}...HEAD > change.diff
-    parity check -s traffic/baseline.jsonl --base http://127.0.0.1:8001 -t http://127.0.0.1:8002 \
-      --reset ./scripts/reset-db.sh --intent-file pr.md --code-diff change.diff --output parity.md
+    echoproof check -s traffic/baseline.jsonl --base http://127.0.0.1:8001 -t http://127.0.0.1:8002 \
+      --reset ./scripts/reset-db.sh --intent-file pr.md --code-diff change.diff --output echoproof.md
 
 - name: Comment on PR
   if: always()
-  run: gh pr comment ${{ github.event.number }} --body-file parity.md
+  run: gh pr comment ${{ github.event.number }} --body-file echoproof.md
 ```
 
 Exit code `1` fails the job and blocks the merge.
 
 ## Coding agent integration (MCP)
 
-`parity mcp` runs a [Model Context Protocol](https://modelcontextprotocol.io) server over stdio, so a coding agent can check the changes it made before declaring the work done.
+`echoproof mcp` runs a [Model Context Protocol](https://modelcontextprotocol.io) server over stdio, so a coding agent can check the changes it made before declaring the work done.
 
 **Claude Code** (run from the project root that holds the snapshot):
 
 ```bash
-claude mcp add parity -- parity mcp
+claude mcp add echoproof -- echoproof mcp
 ```
 
 **Other clients** (`.mcp.json`):
 
 ```json
-{ "mcpServers": { "parity": { "command": "parity", "args": ["mcp"] } } }
+{ "mcpServers": { "echoproof": { "command": "echoproof", "args": ["mcp"] } } }
 ```
 
 | Tool | Main inputs | Purpose |
 |---|---|---|
-| `parity_check` | `snapshot`, `target`, `base`, `intent`, `expect`, `allow_writes` | Replays and diffs. Returns a report for the agent, structured JSON and a `run_id` |
-| `parity_diff` | `baseline`, `candidate`, `intent`, `expect` | Compares two existing snapshots |
-| `parity_exchange` | `run_id`, `id` | Full request, reference and candidate responses, and field-level changes |
+| `echoproof_check` | `snapshot`, `target`, `base`, `intent`, `expect`, `allow_writes` | Replays and diffs. Returns a report for the agent, structured JSON and a `run_id` |
+| `echoproof_diff` | `baseline`, `candidate`, `intent`, `expect` | Compares two existing snapshots |
+| `echoproof_exchange` | `run_id`, `id` | Full request, reference and candidate responses, and field-level changes |
 
-Agent workflow: change the code, start the build, call `parity_check` with the task as `intent`, and on a regression, open examples with `parity_exchange`, fix the code and check again. The server deliberately offers no `accept` tool, because approving a new baseline remains a human decision.
+Agent workflow: change the code, start the build, call `echoproof_check` with the task as `intent`, and on a regression, open examples with `echoproof_exchange`, fix the code and check again. The server deliberately offers no `accept` tool, because approving a new baseline remains a human decision.
 
 ## Security and privacy
 
@@ -386,7 +392,7 @@ The intent text, the code diff (when given), endpoint and field names, the numbe
 
 - `target` and `base` must be on `localhost` unless the host is listed in `[mcp] allowed_hosts`. Replays carry the headers from `replay.headers`, so an agent must not be able to send them to another host.
 - File paths (`snapshot`, `save`, `code_diff_file`) must be inside the project directory. Symlinks that lead outside it are rejected.
-- The reset command is only read from `parity.toml`, never from the agent.
+- The reset command is only read from `echoproof.toml`, never from the agent.
 
 ## Limitations
 
@@ -394,7 +400,7 @@ The intent text, the code diff (when given), endpoint and field names, the numbe
 - **External dependencies** such as payment gateways, SMS or third-party APIs are not mocked yet. Both the base and PR builds call them during replay.
 - **IDs across requests** are not mapped yet. A recorded request such as `GET /orders/123` may refer to data that does not exist in the test environment.
 - **Request order** is preserved by replaying sequentially (`concurrency = 1`). Large traffic can be slow, and parallel replay is only safe for stateless endpoints.
-- **Changes that should have happened but did not** are hard to detect, because Parity reports requests that changed.
+- **Changes that should have happened but did not** are hard to detect, because Echoproof reports requests that changed.
 - **Rare noise** can slip past a single learning run. Raise `--noise-runs` or add an `ignore` pattern when needed.
 
 ## Development
@@ -402,8 +408,8 @@ The intent text, the code diff (when given), endpoint and field names, the numbe
 **Repository layout**
 
 ```
-crates/parity-core     snapshot format, sanitization, diff, reports, intent judging
-crates/parity-cli      `parity` binary: recorder, replay, CLI, MCP server
+crates/echoproof-core     snapshot format, sanitization, diff, reports, intent judging
+crates/echoproof-cli      `echoproof` binary: recorder, replay, CLI, MCP server
 examples/demo-shop     POS backend for the demo and the eval
 eval/judge             intent judge eval: cases, runner and grader
 scripts/demo.sh        end-to-end demo
@@ -430,7 +436,7 @@ The runner refuses to start until the harness has been approved once with `--app
 
 ## License
 
-Parity is licensed under either of the following, at your option:
+Echoproof is licensed under either of the following, at your option:
 
 - Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE))
 - MIT License ([LICENSE-MIT](LICENSE-MIT))

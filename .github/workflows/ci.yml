@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    name: Lint and test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test --all
+
+  demo:
+    name: End-to-end demo and eval selftest
+    runs-on: ubuntu-latest
+    needs: check
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Demo (record, replay, diff, gate)
+        run: ./scripts/demo.sh
+      - name: Eval fixtures and label check (no API calls)
+        run: eval/judge/prepare.sh
+      - name: Eval selftest against the mock API
+        run: |
+          MODE=oracle python3 eval/judge/mock-api.py 39200 &
+          sleep 1
+          EVAL_MOCK_URL=http://127.0.0.1:39200 node eval/judge/selftest.mjs | tee selftest.txt
+          grep -q "gate 100%" selftest.txt

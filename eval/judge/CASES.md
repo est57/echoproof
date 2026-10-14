@@ -1,6 +1,6 @@
 # Kasus uji penilai niat (draf untuk ditinjau)
 
-Setiap kasus = varian perilaku demo-shop ("kode PR") + teks niat. Parity me-replay 2.001 request rekaman, lalu penilai memberi verdict per grup perubahan. Label di bawah adalah jawaban yang benar menurut saya: **I** = intended (gate boleh lolos), **R** = regression (gate harus memblokir; `unclear` juga dihitung memblokir).
+Setiap kasus = varian perilaku demo-shop ("kode PR") + teks niat. Echoproof me-replay 2.001 request rekaman, lalu penilai memberi verdict per grup perubahan. Label di bawah adalah jawaban yang benar menurut saya: **I** = intended (gate boleh lolos), **R** = regression (gate harus memblokir; `unclear` juga dihitung memblokir).
 
 **26 kasus**, 13 berisi regresi dan 13 semuanya intended; 54 grup berlabel (25 R, 29 I).
 
@@ -84,5 +84,5 @@ Dari `node eval/judge/check-labels.mjs` (jumlah = request yang berubah dari 2.00
 
 ## Yang sengaja tidak dimasukkan
 
-- **Implementasi yang tidak lengkap** (misalnya niat "HEMAT10 minimal Rp100.000" tapi kode memakai Rp50.000). Masalah sebenarnya ada di request yang *seharusnya* berubah tapi tidak, dan Parity saat ini hanya melihat request yang berubah. Labelnya ambigu, jadi ini dicatat sebagai batasan produk, bukan kasus eval.
+- **Implementasi yang tidak lengkap** (misalnya niat "HEMAT10 minimal Rp100.000" tapi kode memakai Rp50.000). Masalah sebenarnya ada di request yang *seharusnya* berubah tapi tidak, dan Echoproof saat ini hanya melihat request yang berubah. Labelnya ambigu, jadi ini dicatat sebagai batasan produk, bukan kasus eval.
 - **Perubahan tanpa efek perilaku**: tidak ada grup yang perlu dinilai, jadi penilai tidak dipanggil.

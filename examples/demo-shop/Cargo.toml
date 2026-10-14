@@ -1,6 +1,6 @@
 [package]
 name = "demo-shop"
-description = "Tiny POS backend used to demo Parity"
+description = "Tiny POS backend used to demo Echoproof"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
