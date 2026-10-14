@@ -49,6 +49,13 @@ EVAL_MOCK_URL=http://127.0.0.1:39200 node eval/judge/selftest.mjs
 
 Use the imperative mood and explain why the change is needed, for example `Match array items by id so reordered lists do not look changed`.
 
+## Releasing
+
+1. Bump `version` in `Cargo.toml` and both `version` fields in `server.json`, and add a `CHANGELOG.md` entry.
+2. Merge to `main`, then push a tag: `git tag -a vX.Y.Z -m "Echoproof X.Y.Z" && git push origin vX.Y.Z`.
+
+The release workflow checks that the three versions match the tag, builds the binaries, publishes the GitHub release, publishes both crates to crates.io through trusted publishing, and publishes `server.json` to the MCP Registry through GitHub OIDC. No tokens are stored in the repository. The Homebrew tap picks up the new release on its own within six hours, after installing and testing it.
+
 ## License
 
 By contributing, you agree that your contributions are dual licensed under the MIT and Apache-2.0 licenses, as described in the README.
