@@ -55,6 +55,26 @@ An example of what Echoproof catches: a pull request meant to "add a `currency` 
 
 ## Installation
 
+### Prebuilt binary (recommended)
+
+Download the archive for your platform from the [releases page](https://github.com/est57/echoproof/releases), or from the terminal:
+
+```bash
+VERSION=v0.1.0
+TARGET=aarch64-apple-darwin   # or x86_64-apple-darwin, x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu
+curl -sLO https://github.com/est57/echoproof/releases/download/$VERSION/echoproof-$VERSION-$TARGET.tar.gz
+curl -sLO https://github.com/est57/echoproof/releases/download/$VERSION/echoproof-$VERSION-$TARGET.tar.gz.sha256
+shasum -a 256 -c echoproof-$VERSION-$TARGET.tar.gz.sha256
+tar -xzf echoproof-$VERSION-$TARGET.tar.gz
+sudo mv echoproof-$VERSION-$TARGET/echoproof /usr/local/bin/
+```
+
+```bash
+echoproof --version
+```
+
+### From source
+
 **Requirements:** Rust 1.85 or later. `curl` is needed to run the demo.
 
 ```bash

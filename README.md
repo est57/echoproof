@@ -55,6 +55,26 @@ Contoh yang ditangkap Echoproof: sebuah PR berniat "menambah field `currency` di
 
 ## Instalasi
 
+### Binary siap pakai (disarankan)
+
+Unduh arsip untuk platform Anda dari [halaman rilis](https://github.com/est57/echoproof/releases), atau lewat terminal:
+
+```bash
+VERSION=v0.1.0
+TARGET=aarch64-apple-darwin   # atau x86_64-apple-darwin, x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu
+curl -sLO https://github.com/est57/echoproof/releases/download/$VERSION/echoproof-$VERSION-$TARGET.tar.gz
+curl -sLO https://github.com/est57/echoproof/releases/download/$VERSION/echoproof-$VERSION-$TARGET.tar.gz.sha256
+shasum -a 256 -c echoproof-$VERSION-$TARGET.tar.gz.sha256
+tar -xzf echoproof-$VERSION-$TARGET.tar.gz
+sudo mv echoproof-$VERSION-$TARGET/echoproof /usr/local/bin/
+```
+
+```bash
+echoproof --version
+```
+
+### Dari source code
+
 **Kebutuhan:** Rust 1.85 atau lebih baru. `curl` diperlukan untuk menjalankan demo.
 
 ```bash
