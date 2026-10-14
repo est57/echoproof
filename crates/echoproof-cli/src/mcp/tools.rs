@@ -172,6 +172,8 @@ impl Server {
         let text = render::agent(&report, Some(&run_id));
         let mut structured = serde_json::to_value(&report)?;
         structured["run_id"] = json!(run_id);
+        // Some clients show only structuredContent to the model, so the guidance travels in it too.
+        structured["agent_report"] = json!(text);
         Ok((text, structured))
     }
 
