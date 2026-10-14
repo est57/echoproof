@@ -1,6 +1,7 @@
 # Echoproof
 
 [![CI](https://github.com/est57/echoproof/actions/workflows/ci.yml/badge.svg)](https://github.com/est57/echoproof/actions/workflows/ci.yml)
+[![crates.io](https://img.shields.io/crates/v/echoproof.svg)](https://crates.io/crates/echoproof)
 [![Release](https://img.shields.io/github/v/release/est57/echoproof?sort=semver)](https://github.com/est57/echoproof/releases)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
@@ -71,6 +72,14 @@ sudo mv echoproof-$VERSION-$TARGET/echoproof /usr/local/bin/
 
 ```bash
 echoproof --version
+```
+
+### With Cargo
+
+If you have Rust 1.85 or later:
+
+```bash
+cargo install echoproof
 ```
 
 ### From source
