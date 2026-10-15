@@ -2,6 +2,7 @@ use anyhow::{Context, Result, anyhow, bail};
 use echoproof_core::config::Config;
 use echoproof_core::diff::{DiffOptions, Noise, diff_exchange};
 use echoproof_core::render;
+use echoproof_core::report::NotReproduced;
 use echoproof_core::snapshot::{Exchange, read_snapshot, write_snapshot};
 use serde_json::{Value, json};
 use std::collections::VecDeque;
@@ -35,6 +36,7 @@ struct ReportRequest {
     intent: Option<String>,
     code_diff: Option<String>,
     noise: Noise,
+    not_reproduced: NotReproduced,
 }
 
 impl Server {
@@ -125,6 +127,7 @@ impl Server {
             intent: args.intent,
             code_diff,
             noise: out.noise,
+            not_reproduced: out.not_reproduced,
         };
         self.finish(&config, out.reference, out.candidate, request)
             .await
@@ -139,6 +142,7 @@ impl Server {
             max_examples: args.max_examples,
             intent: args.intent,
             noise: Noise::new(),
+            not_reproduced: NotReproduced::new(),
         };
         let (baseline, candidate) = (self.load(&args.baseline)?, self.load(&args.candidate)?);
         self.finish(&config, baseline, candidate, request).await
@@ -157,6 +161,7 @@ impl Server {
             intent: request.intent.as_deref(),
             code_diff: request.code_diff.as_deref(),
             noise: &request.noise,
+            not_reproduced: &request.not_reproduced,
         };
         let report = judged_report(config, &baseline, &candidate, &input).await?;
         let run_id = uuid::Uuid::new_v4().simple().to_string()[..8].to_string();

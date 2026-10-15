@@ -44,6 +44,7 @@ fn sample_report() -> Report {
     let options = ReportOptions {
         expect: vec![],
         max_examples: 2,
+        ..Default::default()
     };
     build_report(&baseline, &candidate, &DiffOptions::default(), &options)
 }

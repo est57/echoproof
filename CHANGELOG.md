@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Requests that succeeded in the recording but fail on the base build are reported as *not reproduced* and are no longer counted as unchanged. The agent report states them as unverified, with examples such as `GET /orders/9812: recorded 200, base build 404`.
 - MCP: when `code_diff_file` is omitted, the intent judge gets the project's uncommitted changes from `git diff HEAD` (external diff drivers, textconv filters and fsmonitor hooks disabled, capped at 100,000 characters). Agents no longer need to write a diff file for the judge to see the code.
 
 ## 0.2.1 - 2026-10-15

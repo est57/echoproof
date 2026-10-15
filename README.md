@@ -493,7 +493,7 @@ Teks niat, diff kode (jika diberikan), nama endpoint dan field, jumlah request y
 
 - **Request tulis** membutuhkan lingkungan uji yang dapat di-reset. Tanpa itu, gunakan mode aman, yang hanya memverifikasi request baca.
 - **Panggilan ke pihak ketiga** baru di-mock untuk aplikasi Laravel yang memakai klien `Http`, lewat echoproof/laravel. SDK dengan klien HTTP sendiri, bahasa lain, dan dependency non-HTTP (SMTP, antrean) masih dipanggil sungguhan saat replay.
-- **ID antar-request** belum dipetakan. Request rekaman seperti `GET /orders/123` mungkin merujuk data yang tidak ada di lingkungan uji.
+- **ID antar-request** belum dipetakan. Request rekaman seperti `GET /orders/123` mungkin merujuk data yang tidak ada di lingkungan uji. Dengan `--base`, request seperti itu dilaporkan sebagai *not reproduced* (sukses di rekaman tetapi gagal di build base), bukan dihitung tidak berubah.
 - **Urutan request** dijaga dengan replay berurutan (`concurrency = 1`). Traffic besar bisa lambat, dan replay paralel hanya aman untuk endpoint tanpa state.
 - **Perubahan yang seharusnya terjadi tetapi tidak terjadi** sulit dideteksi, karena Echoproof melaporkan request yang berubah.
 - **Noise yang jarang muncul** dapat lolos dari satu run pembelajaran. Naikkan `--noise-runs` atau tambahkan pola `ignore` bila perlu.

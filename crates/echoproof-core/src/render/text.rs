@@ -1,6 +1,6 @@
 use std::fmt::Write;
 
-use super::{Status, judgment_label, skipped_note, verdict_label};
+use super::{Status, judgment_label, not_reproduced_note, skipped_note, verdict_label};
 use crate::report::{EndpointReport, Report, Verdict, kind_label, percent, short};
 
 pub fn text(report: &Report) -> String {
@@ -12,6 +12,9 @@ pub fn text(report: &Report) -> String {
     if report.skipped > 0 {
         extra.push_str(&format!(", {} not replayed", report.skipped));
     }
+    if report.not_reproduced > 0 {
+        extra.push_str(&format!(", {} not reproduced", report.not_reproduced));
+    }
     let _ = writeln!(
         out,
         "echoproof: {} - {} exchanges, {} changed, {} unchanged{extra}",
@@ -22,6 +25,9 @@ pub fn text(report: &Report) -> String {
     );
     if report.skipped > 0 {
         let _ = writeln!(out, "  {}", skipped_note(report));
+    }
+    if report.not_reproduced > 0 {
+        let _ = writeln!(out, "  {}", not_reproduced_note(report));
     }
     if !report.noise.is_empty() {
         let _ = writeln!(
@@ -44,7 +50,11 @@ pub fn text(report: &Report) -> String {
         .max()
         .unwrap_or(0);
     for (index, endpoint) in report.endpoints.iter().enumerate() {
-        if index == 0 || !endpoint.groups.is_empty() || endpoint.missing > 0 || endpoint.skipped > 0
+        if index == 0
+            || !endpoint.groups.is_empty()
+            || endpoint.missing > 0
+            || endpoint.skipped > 0
+            || endpoint.not_reproduced > 0
         {
             out.push('\n');
         }
@@ -85,6 +95,16 @@ fn write_endpoint(out: &mut String, endpoint: &EndpointReport, width: usize) {
             "      {} write requests not replayed (safe mode)",
             endpoint.skipped
         );
+    }
+    if endpoint.not_reproduced > 0 {
+        let _ = writeln!(
+            out,
+            "      {} requests did not reproduce on the base build",
+            endpoint.not_reproduced
+        );
+        for example in &endpoint.not_reproduced_examples {
+            let _ = writeln!(out, "          {example}");
+        }
     }
     for group in &endpoint.groups {
         let _ = writeln!(

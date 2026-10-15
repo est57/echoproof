@@ -8,15 +8,10 @@ use crate::report::{EndpointReport, Example, Report, Verdict, kind_label, short}
 /// `resettable` says whether the project restores state between passes, so every write may be replayed.
 pub fn agent(report: &Report, run_id: Option<&str>, resettable: bool) -> String {
     let mut out = String::new();
-    let partial = report.skipped > 0 && report.verdict != Verdict::Regression;
+    let unverified = report.skipped + report.not_reproduced;
+    let partial = unverified > 0 && report.verdict != Verdict::Regression;
     if partial {
-        let _ = writeln!(
-            out,
-            "Echoproof verdict: {} for the {} replayed requests only; {} write requests were NOT verified",
-            verdict_label(report.verdict),
-            report.total - report.skipped,
-            report.skipped
-        );
+        let _ = writeln!(out, "Echoproof verdict: {}", partial_verdict(report));
     } else {
         let _ = writeln!(out, "Echoproof verdict: {}", verdict_label(report.verdict));
     }
@@ -26,6 +21,9 @@ pub fn agent(report: &Report, run_id: Option<&str>, resettable: bool) -> String 
     }
     if report.skipped > 0 {
         let _ = writeln!(out, "{}", skipped_note(report, resettable));
+    }
+    if report.not_reproduced > 0 {
+        write_not_reproduced(&mut out, report);
     }
     if let Some(judge) = &report.judge {
         let _ = writeln!(out, "Intent check ({}): {}", judge.model, judge.summary);
@@ -42,14 +40,49 @@ pub fn agent(report: &Report, run_id: Option<&str>, resettable: bool) -> String 
             "Next: fix the code, then run echoproof_check again.".to_string()
         }
         _ if partial => format!(
-            "No unexpected changes in the replayed requests. Do not report the change as fully verified: \
-             say that {} write requests were not replayed, or check again with them allowed.",
-            report.skipped
+            "No unexpected changes in the verified requests. Do not report the change as fully verified: \
+             say that {unverified} requests were not verified, and why."
         ),
         _ => "No unexpected behavior changes.".to_string(),
     };
     let _ = writeln!(out, "{next}");
     out
+}
+
+fn partial_verdict(report: &Report) -> String {
+    let label = verdict_label(report.verdict);
+    let verified = report.total - report.skipped - report.not_reproduced - report.missing;
+    match (report.skipped, report.not_reproduced) {
+        (skipped, 0) => format!(
+            "{label} for the {verified} replayed requests only; {skipped} write requests were NOT verified"
+        ),
+        (0, missing_data) => format!(
+            "{label} for the {verified} reproduced requests only; {missing_data} requests did not reproduce \
+             on the base build and were NOT verified"
+        ),
+        (skipped, missing_data) => format!(
+            "{label} for the {verified} verified requests only; NOT verified: {skipped} write requests not \
+             replayed, {missing_data} requests that did not reproduce on the base build"
+        ),
+    }
+}
+
+fn write_not_reproduced(out: &mut String, report: &Report) {
+    let _ = writeln!(
+        out,
+        "{} requests succeeded in the recording but failed on the base build, so they are NOT verified. \
+         The test data probably lacks what they refer to: seed it, or record traffic against the test \
+         environment. Do not treat them as passing.",
+        report.not_reproduced
+    );
+    for example in report
+        .endpoints
+        .iter()
+        .flat_map(|e| &e.not_reproduced_examples)
+        .take(5)
+    {
+        let _ = writeln!(out, "- {example}");
+    }
 }
 
 fn skipped_note(report: &Report, resettable: bool) -> String {

@@ -3,7 +3,7 @@ use echoproof_core::config::Config;
 use echoproof_core::diff::Noise;
 use echoproof_core::intent::JudgeInput;
 use echoproof_core::render;
-use echoproof_core::report::{Report, Verdict, report_for_config};
+use echoproof_core::report::{NotReproduced, Report, Verdict, report_for_config};
 use echoproof_core::snapshot::Exchange;
 use std::path::Path;
 use std::process::ExitCode;
@@ -17,6 +17,7 @@ pub struct ReportInput<'a> {
     pub intent: Option<&'a str>,
     pub code_diff: Option<&'a str>,
     pub noise: &'a Noise,
+    pub not_reproduced: &'a NotReproduced,
 }
 
 /// Builds a report and, when an intent is given, judges it.
@@ -34,6 +35,7 @@ pub async fn judged_report(
             input.expect,
             max_examples,
             input.noise,
+            input.not_reproduced,
         )
     };
     let Some(intent) = input.intent.filter(|i| !i.trim().is_empty()) else {
@@ -58,6 +60,7 @@ pub async fn emit(
     baseline: &[Exchange],
     candidate: &[Exchange],
     noise: &Noise,
+    not_reproduced: &NotReproduced,
     args: &ReportArgs,
 ) -> Result<ExitCode> {
     let intent = args.intent()?;
@@ -68,6 +71,7 @@ pub async fn emit(
         intent: intent.as_deref(),
         code_diff: code_diff.as_deref(),
         noise,
+        not_reproduced,
     };
     let report = judged_report(config, baseline, candidate, &input).await?;
     print!("{}", format_report(&report, args.format)?);

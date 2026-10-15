@@ -9,6 +9,7 @@ fn report(verdict: Verdict, skipped: usize) -> Report {
         unchanged: 48 - skipped,
         missing: 0,
         skipped,
+        not_reproduced: 0,
         noise: Vec::new(),
         expect: Vec::new(),
         endpoints: Vec::new(),

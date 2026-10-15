@@ -12,6 +12,7 @@ use anyhow::{Context, Result, bail};
 use clap::Parser;
 use echoproof_core::config::{Config, TEMPLATE};
 use echoproof_core::diff::Noise;
+use echoproof_core::report::NotReproduced;
 use echoproof_core::sanitize::Sanitizer;
 use echoproof_core::snapshot::{Exchange, read_snapshot, write_snapshot};
 use std::collections::HashMap;
@@ -80,7 +81,15 @@ async fn run(cli: Cli) -> Result<ExitCode> {
             report,
         } => {
             let (baseline, candidate) = (read_snapshot(&baseline)?, read_snapshot(&candidate)?);
-            return output::emit(&config, &baseline, &candidate, &Noise::new(), &report).await;
+            return output::emit(
+                &config,
+                &baseline,
+                &candidate,
+                &Noise::new(),
+                &NotReproduced::new(),
+                &report,
+            )
+            .await;
         }
         Command::Check {
             snapshot,
@@ -106,8 +115,15 @@ async fn run(cli: Cli) -> Result<ExitCode> {
             if let Some(save) = save {
                 write_snapshot(&save, &out.candidate)?;
             }
-            return output::emit(&config, &out.reference, &out.candidate, &out.noise, &report)
-                .await;
+            return output::emit(
+                &config,
+                &out.reference,
+                &out.candidate,
+                &out.noise,
+                &out.not_reproduced,
+                &report,
+            )
+            .await;
         }
         Command::Mcp => mcp::serve(cli.config).await?,
         Command::Accept {

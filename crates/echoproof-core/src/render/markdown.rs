@@ -1,6 +1,6 @@
 use std::fmt::Write;
 
-use super::{Status, counts, judgment_label, skipped_note, verdict_label};
+use super::{Status, counts, judgment_label, not_reproduced_note, skipped_note, verdict_label};
 use crate::report::{EndpointReport, Report, kind_label, percent, short};
 
 pub fn markdown(report: &Report) -> String {
@@ -17,6 +17,9 @@ pub fn markdown(report: &Report) -> String {
     }
     if report.skipped > 0 {
         let _ = writeln!(out, "\n> **Warning:** {}", skipped_note(report));
+    }
+    if report.not_reproduced > 0 {
+        let _ = writeln!(out, "\n> **Warning:** {}", not_reproduced_note(report));
     }
     if !report.noise.is_empty() {
         let _ = writeln!(
@@ -55,6 +58,7 @@ fn status_cell(status: Status) -> &'static str {
     match status {
         Status::Unexpected => "**FAIL** unexpected",
         Status::NotReplayed => "not replayed (write)",
+        Status::NotReproduced => "not reproduced (not verified)",
         Status::Intended => "intended",
         Status::Expected => "expected",
         Status::Unchanged => "unchanged",

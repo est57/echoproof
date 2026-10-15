@@ -37,6 +37,12 @@ fn counts(report: &Report, strong: &str) -> String {
             report.skipped
         ));
     }
+    if report.not_reproduced > 0 {
+        text.push_str(&format!(
+            ", {strong}{}{strong} did not reproduce on the base build",
+            report.not_reproduced
+        ));
+    }
     text
 }
 
@@ -45,6 +51,14 @@ fn skipped_note(report: &Report) -> String {
         "{} write requests were not replayed (safe mode), so their behavior is NOT verified. \
          Allow them per endpoint (`--allow-writes` / `allow_writes`), only against a disposable environment.",
         report.skipped
+    )
+}
+
+fn not_reproduced_note(report: &Report) -> String {
+    format!(
+        "{} requests succeeded in the recording but not on the base build, so they are NOT verified. \
+         The test environment probably lacks the data they refer to (for example a recorded ID).",
+        report.not_reproduced
     )
 }
 
@@ -63,6 +77,7 @@ fn judgment_label(group: &ChangeGroup) -> Option<(&'static str, &str)> {
 enum Status {
     Unexpected,
     NotReplayed,
+    NotReproduced,
     Intended,
     Expected,
     Unchanged,
@@ -74,6 +89,11 @@ impl Status {
             Status::Unexpected
         } else if endpoint.changed == 0 && endpoint.skipped == endpoint.total {
             Status::NotReplayed
+        } else if endpoint.changed == 0
+            && endpoint.not_reproduced > 0
+            && endpoint.skipped + endpoint.not_reproduced == endpoint.total
+        {
+            Status::NotReproduced
         } else if endpoint.changed > 0 && endpoint.is_judged() {
             Status::Intended
         } else if endpoint.changed > 0 {
@@ -87,6 +107,7 @@ impl Status {
         match self {
             Status::Unexpected => "unexpected",
             Status::NotReplayed => "not replayed",
+            Status::NotReproduced => "not reproduced",
             Status::Intended => "intended",
             Status::Expected => "expected",
             Status::Unchanged => "unchanged",

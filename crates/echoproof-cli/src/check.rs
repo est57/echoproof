@@ -5,7 +5,9 @@ use anyhow::{Context, Result, bail};
 use echoproof_core::config::Config;
 use echoproof_core::diff::{DiffOptions, Noise, learn_noise};
 use echoproof_core::origin;
+use echoproof_core::report::NotReproduced;
 use echoproof_core::snapshot::Exchange;
+use std::collections::HashMap;
 use std::process::{Command, Stdio};
 
 use crate::replay::{self, ReplayOptions, parse_target};
@@ -24,6 +26,8 @@ pub struct CheckOutput {
     pub reference: Vec<Exchange>,
     pub candidate: Vec<Exchange>,
     pub noise: Noise,
+    /// Only with a base build: recorded successes the base build could not reproduce.
+    pub not_reproduced: NotReproduced,
 }
 
 pub async fn run(
@@ -46,6 +50,7 @@ pub async fn run(
             reference: recorded.to_vec(),
             candidate,
             noise: Noise::new(),
+            not_reproduced: NotReproduced::new(),
         });
     };
 
@@ -74,6 +79,13 @@ pub async fn run(
     };
     reset(plan.reset)?;
     let reference = replay_at(base).await?;
+    let not_reproduced = not_reproduced(recorded, &reference);
+    if !not_reproduced.is_empty() {
+        eprintln!(
+            "echoproof check: {} requests succeeded in the recording but not on the base build",
+            not_reproduced.len()
+        );
+    }
     let diff = DiffOptions::from_config(&config.diff);
     let mut noise = Noise::new();
     for _ in 0..plan.noise_runs {
@@ -93,7 +105,24 @@ pub async fn run(
         reference,
         candidate,
         noise,
+        not_reproduced,
     })
+}
+
+fn not_reproduced(recorded: &[Exchange], base: &[Exchange]) -> NotReproduced {
+    let ok = |status: u16| (200..300).contains(&status);
+    let recorded: HashMap<&str, u16> = recorded
+        .iter()
+        .map(|e| (e.id.as_str(), e.response.status))
+        .collect();
+    base.iter()
+        .filter(|e| e.skipped.is_none())
+        .filter_map(|e| {
+            let before = *recorded.get(e.id.as_str())?;
+            (ok(before) && !ok(e.response.status))
+                .then(|| (e.id.clone(), (before, e.response.status)))
+        })
+        .collect()
 }
 
 fn reset(command: Option<&str>) -> Result<()> {
