@@ -147,3 +147,17 @@ fn empty_header_lists_from_php_parse_as_no_headers() {
     let bad = text.replacen(r#""headers":[]"#, r#""headers":["x"]"#, 1);
     assert!(serde_json::from_str::<OutboundCall>(&bad).is_err());
 }
+
+#[test]
+fn routes_ignore_default_ports_case_and_query() {
+    let route = |url: &str| call("post", url, json!(null)).request.route();
+    assert_eq!(
+        route("HTTPS://Pay.Test:443/v2/charges?key=1"),
+        "POST https://pay.test/v2/charges"
+    );
+    assert_eq!(
+        route("http://pay.test:8080/v2"),
+        "POST http://pay.test:8080/v2"
+    );
+    assert_eq!(route("https://pay.test"), "POST https://pay.test/");
+}

@@ -10,6 +10,7 @@ use echoproof_core::snapshot::Exchange;
 use std::collections::HashMap;
 use std::process::{Command, Stdio};
 
+use crate::outproxy::OutboundProxy;
 use crate::replay::{self, ReplayOptions, parse_target};
 
 pub struct CheckPlan<'a> {
@@ -35,13 +36,16 @@ pub async fn run(
     recorded: &[Exchange],
     plan: &CheckPlan<'_>,
 ) -> Result<CheckOutput> {
+    let proxy = OutboundProxy::from_config(config.replay.outbound_proxy.as_deref()).await?;
     let options = |target: &str| {
-        ReplayOptions::from_config(
+        let mut options = ReplayOptions::from_config(
             config,
             target.to_string(),
             plan.concurrency,
             plan.allow_writes,
-        )
+        );
+        options.outbound = proxy.0.clone();
+        options
     };
     let Some(base) = plan.base else {
         reset(plan.reset)?;

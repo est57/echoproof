@@ -25,6 +25,9 @@ noise_runs = 1
 # With concurrency = 1, an ID that the replay creates differently from the recording
 # (order 9812 recorded, order 57 replayed) is carried into later requests for that entity.
 map_ids = true
+# Answer the builds' outbound HTTP(S) calls from the recording (run `echoproof ca init` first
+# and point the builds at the proxy, see `echoproof ca env`).
+# outbound_proxy = "127.0.0.1:8899"
 
 [diff]
 auto_noise = true

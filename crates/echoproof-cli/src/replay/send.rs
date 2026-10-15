@@ -44,9 +44,13 @@ pub(super) async fn replay_one(
     exchange: &Exchange,
     target: &Url,
     headers: &BTreeMap<String, String>,
+    fixtures: bool,
 ) -> Exchange {
     let tagged = outbound::usable_id(&exchange.id);
-    if tagged && let Err(error) = outbound::send_fixtures(client, exchange, target, headers).await {
+    if fixtures
+        && tagged
+        && let Err(error) = outbound::send_fixtures(client, exchange, target, headers).await
+    {
         eprintln!(
             "echoproof replay: {}: cannot send recorded outbound calls: {error:#}",
             exchange.id

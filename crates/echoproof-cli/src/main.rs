@@ -1,8 +1,11 @@
+mod ca;
+mod ca_env;
 mod check;
 mod cli;
 mod http;
 mod judge;
 mod mcp;
+mod outproxy;
 mod output;
 mod paths;
 mod record;
@@ -20,6 +23,7 @@ use std::path::Path;
 use std::process::ExitCode;
 
 use cli::{Cli, Command};
+use outproxy::OutboundProxy;
 use replay::ReplayOptions;
 
 #[tokio::main]
@@ -35,10 +39,13 @@ async fn main() -> ExitCode {
 
 async fn run(cli: Cli) -> Result<ExitCode> {
     let mut config = Config::load(&cli.config)?;
-    if let Command::Replay { replay, .. } | Command::Check { replay, .. } = &cli.command
-        && replay.no_id_mapping
-    {
-        config.replay.map_ids = false;
+    if let Command::Replay { replay, .. } | Command::Check { replay, .. } = &cli.command {
+        if replay.no_id_mapping {
+            config.replay.map_ids = false;
+        }
+        if replay.outbound_proxy.is_some() {
+            config.replay.outbound_proxy = replay.outbound_proxy.clone();
+        }
     }
     match cli.command {
         Command::Init => {
@@ -66,12 +73,14 @@ async fn run(cli: Cli) -> Result<ExitCode> {
             replay,
         } => {
             let recorded = read_snapshot(&snapshot)?;
-            let options = ReplayOptions::from_config(
+            let proxy = OutboundProxy::from_config(config.replay.outbound_proxy.as_deref()).await?;
+            let mut options = ReplayOptions::from_config(
                 &config,
                 target,
                 replay.concurrency,
                 &replay.allow_writes,
             );
+            options.outbound = proxy.0.clone();
             let candidate = replay::replay(&recorded, &options).await?;
             write_snapshot(&out, &candidate)?;
             eprintln!(
@@ -131,6 +140,7 @@ async fn run(cli: Cli) -> Result<ExitCode> {
             .await;
         }
         Command::Mcp => mcp::serve(cli.config).await?,
+        Command::Ca { action } => ca::command(action)?,
         Command::Accept {
             candidate,
             baseline,

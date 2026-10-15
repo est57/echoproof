@@ -20,8 +20,33 @@ pub(super) fn usable_id(id: &str) -> bool {
             .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
 }
 
+/// Whether the target runs echoproof/laravel in replay mode. Fixtures are only posted to such
+/// targets: on any other service the fixture path could hit a catch-all route and run real code.
+pub(super) async fn package_present(
+    client: &reqwest::Client,
+    target: &Url,
+    headers: &BTreeMap<String, String>,
+) -> bool {
+    let Ok(url) = target_url(target, "/__echoproof/outbound/echoproof-probe") else {
+        return false;
+    };
+    let mut request = client.get(url);
+    for (name, value) in headers {
+        request = request.header(name, value);
+    }
+    let Ok(response) = request.send().await else {
+        return false;
+    };
+    if !response.status().is_success() {
+        return false;
+    }
+    let Ok(bytes) = read_body(response).await else {
+        return false;
+    };
+    serde_json::from_slice::<Captured>(&bytes).is_ok()
+}
+
 /// Hands the recorded third-party calls to a replay-mode build before the request is sent.
-/// Builds without echoproof replay mode answer 404, which is fine.
 pub(super) async fn send_fixtures(
     client: &reqwest::Client,
     exchange: &Exchange,

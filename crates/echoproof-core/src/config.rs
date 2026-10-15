@@ -49,6 +49,8 @@ pub struct ReplayConfig {
     pub noise_runs: usize,
     /// Carry IDs created during a sequential replay into later requests.
     pub map_ids: bool,
+    /// Loopback address of the outbound proxy that answers third-party calls during replay.
+    pub outbound_proxy: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -140,6 +142,7 @@ impl Default for ReplayConfig {
             reset: None,
             noise_runs: 1,
             map_ids: true,
+            outbound_proxy: None,
         }
     }
 }

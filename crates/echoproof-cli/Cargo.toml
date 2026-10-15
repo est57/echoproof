@@ -16,13 +16,19 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow.workspace = true
+chrono.workspace = true
 axum.workspace = true
 clap.workspace = true
 futures.workspace = true
+http-body-util.workspace = true
+hyper.workspace = true
+hyper-util.workspace = true
+rcgen.workspace = true
 echoproof-core.workspace = true
 regex.workspace = true
 reqwest.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 tokio.workspace = true
+tokio-rustls.workspace = true
 uuid.workspace = true

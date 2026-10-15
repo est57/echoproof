@@ -1,5 +1,6 @@
 mod outbound;
 mod send;
+mod steps;
 #[cfg(test)]
 mod tests;
 
@@ -7,6 +8,9 @@ use anyhow::{Result, bail};
 use echoproof_core::config::Config;
 use echoproof_core::endpoint::EndpointPattern;
 use echoproof_core::idmap::IdMap;
+use std::sync::Arc;
+
+use crate::outproxy::OutboundProxy;
 use echoproof_core::sanitize::Sanitizer;
 use echoproof_core::snapshot::{Body, Exchange, Response};
 use futures::StreamExt;
@@ -15,6 +19,7 @@ use std::collections::BTreeMap;
 use std::io::{IsTerminal, Write};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
+use steps::{learn, rewrite, through_proxy};
 
 pub struct ReplayOptions {
     pub target: String,
@@ -25,6 +30,8 @@ pub struct ReplayOptions {
     pub writes: WritePolicy,
     /// Only for sequential replays: request order decides which ID was created first.
     pub map_ids: bool,
+    /// Set by the caller; forces a sequential replay so each call belongs to one request.
+    pub outbound: Option<Arc<OutboundProxy>>,
 }
 
 impl ReplayOptions {
@@ -47,6 +54,7 @@ impl ReplayOptions {
             target,
             concurrency,
             map_ids: config.replay.map_ids && concurrency <= 1,
+            outbound: None,
             timeout: Duration::from_millis(config.replay.timeout_ms),
             headers: config.replay.headers.clone(),
             sanitizer: Sanitizer::new(&config.sanitize),
@@ -98,6 +106,13 @@ pub async fn replay(exchanges: &[Exchange], options: &ReplayOptions) -> Result<V
         .redirect(reqwest::redirect::Policy::none())
         .build()?;
     let headers = send::expand_env(&options.headers);
+    let has_outbound = exchanges
+        .iter()
+        .any(|e| e.outbound.as_ref().is_some_and(|c| !c.is_empty()));
+    // With the outbound proxy, every client's calls are answered there; no fixtures are posted.
+    let fixtures = has_outbound
+        && options.outbound.is_none()
+        && outbound::package_present(&client, &target, &headers).await;
     let done = AtomicUsize::new(0);
     let total = exchanges.len();
     let started = Instant::now();
@@ -110,13 +125,20 @@ pub async fn replay(exchanges: &[Exchange], options: &ReplayOptions) -> Result<V
             let _ = std::io::stderr().flush();
         }
     };
-    let mut results: Vec<(usize, Exchange)> = if options.map_ids {
+    let mut results: Vec<(usize, Exchange)> = if options.map_ids || options.outbound.is_some() {
         let mut ids = IdMap::default();
         let mut out = Vec::with_capacity(total);
         for (index, recorded) in exchanges.iter().enumerate() {
-            let exchange = rewrite(recorded, &ids);
+            let exchange = if options.map_ids {
+                rewrite(recorded, &ids)
+            } else {
+                recorded.clone()
+            };
             let mut candidate = if options.writes.allows(&exchange) {
-                send::replay_one(&client, &exchange, &target, &headers).await
+                through_proxy(options, &exchange, async {
+                    send::replay_one(&client, &exchange, &target, &headers, fixtures).await
+                })
+                .await
             } else {
                 skipped(&exchange)
             };
@@ -139,7 +161,7 @@ pub async fn replay(exchanges: &[Exchange], options: &ReplayOptions) -> Result<V
                 async move {
                     let exchange = &exchanges[index];
                     let mut candidate = if options.writes.allows(exchange) {
-                        send::replay_one(client, exchange, target, headers).await
+                        send::replay_one(client, exchange, target, headers, fixtures).await
                     } else {
                         skipped(exchange)
                     };
@@ -172,30 +194,6 @@ pub async fn replay(exchanges: &[Exchange], options: &ReplayOptions) -> Result<V
     );
     results.sort_by_key(|(index, _)| *index);
     Ok(results.into_iter().map(|(_, exchange)| exchange).collect())
-}
-
-/// The recorded request with IDs created earlier in this replay put in place of recorded ones.
-fn rewrite(exchange: &Exchange, ids: &IdMap) -> Exchange {
-    let mut out = exchange.clone();
-    if ids.is_empty() {
-        return out;
-    }
-    out.request.path = ids.rewrite_path(&exchange.request.path);
-    if let Body::Json(body) = &mut out.request.body {
-        ids.rewrite_body(&exchange.request.path, body);
-    }
-    out
-}
-
-fn learn(ids: &mut IdMap, recorded: &Exchange, replayed: &Exchange) {
-    if replayed.skipped.is_some() {
-        return;
-    }
-    if let (Body::Json(before), Body::Json(after)) =
-        (&recorded.response.body, &replayed.response.body)
-    {
-        ids.learn(&recorded.request.path, before, after);
-    }
 }
 
 fn skipped(exchange: &Exchange) -> Exchange {

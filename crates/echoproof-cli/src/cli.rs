@@ -72,12 +72,38 @@ pub enum Command {
     },
     /// Serve the Model Context Protocol over stdio for coding agents.
     Mcp,
+    /// Manage the project's certificate authority for the outbound proxy.
+    Ca {
+        #[command(subcommand)]
+        action: CaAction,
+    },
     /// Make a candidate's responses the new baseline.
     Accept {
         candidate: PathBuf,
         #[arg(long)]
         baseline: PathBuf,
     },
+}
+
+#[derive(Subcommand)]
+pub enum CaAction {
+    /// Create .echoproof/ca.pem and its key for this project.
+    Init,
+    /// Print the settings that point a test build at the outbound proxy.
+    Env {
+        #[arg(long, value_enum)]
+        runtime: Runtime,
+        #[arg(long, default_value = "127.0.0.1:8899")]
+        proxy: String,
+    },
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+pub enum Runtime {
+    Php,
+    Node,
+    Python,
+    Go,
 }
 
 #[derive(Args)]
@@ -90,6 +116,10 @@ pub struct ReplayArgs {
     /// Do not carry IDs created during the replay into later requests.
     #[arg(long)]
     pub no_id_mapping: bool,
+    /// Answer the builds' outbound HTTP(S) calls from the recording through a proxy on this
+    /// loopback address (see `echoproof ca init`).
+    #[arg(long)]
+    pub outbound_proxy: Option<String>,
 }
 
 #[derive(Args)]

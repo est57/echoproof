@@ -40,11 +40,35 @@ impl Sanitizer {
         self.redact_body(&mut exchange.request.body);
         self.redact_body(&mut exchange.response.body);
         for call in exchange.outbound.iter_mut().flatten() {
+            call.request.url = self.redact_url(&call.request.url);
             self.redact_headers(&mut call.request.headers);
             self.redact_headers(&mut call.response.headers);
             self.redact_body(&mut call.request.body);
             self.redact_body(&mut call.response.body);
         }
+    }
+
+    /// Query parameters follow the field rules: `?api_key=...` is as secret as a body field.
+    fn redact_url(&self, url: &str) -> String {
+        let Some((base, query)) = url.split_once('?') else {
+            return url.to_string();
+        };
+        let pairs: Vec<String> = query
+            .split('&')
+            .map(|pair| match pair.split_once('=') {
+                Some((name, value)) => {
+                    let key = name.to_ascii_lowercase();
+                    let by_pattern = self.patterns.iter().any(|p| wildcard(p, &key));
+                    if self.fields.contains(&key) || (by_pattern && !value.is_empty()) {
+                        format!("{name}=%5BREDACTED%5D")
+                    } else {
+                        pair.to_string()
+                    }
+                }
+                None => pair.to_string(),
+            })
+            .collect();
+        format!("{base}?{}", pairs.join("&"))
     }
 
     fn redact_headers(&self, headers: &mut Headers) {
@@ -156,5 +180,16 @@ mod tests {
         assert!(wildcard("*_hash", "pin_hash"));
         assert!(!wildcard("*_hash", "hash_value"));
         assert!(wildcard("pin*", "pin"));
+    }
+
+    #[test]
+    fn redacts_secret_query_parameters_of_outbound_calls() {
+        let sanitizer = Sanitizer::new(&SanitizeConfig::default());
+        let url =
+            sanitizer.redact_url("https://pay.test/v2?api_key=k1&currency=IDR&access_token=t");
+        assert_eq!(
+            url,
+            "https://pay.test/v2?api_key=%5BREDACTED%5D&currency=IDR&access_token=%5BREDACTED%5D"
+        );
     }
 }
