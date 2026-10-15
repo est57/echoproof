@@ -493,7 +493,7 @@ The intent text, the code diff (when given), endpoint and field names, the numbe
 
 - **Write requests** need a test environment that can be reset. Without one, use safe mode, which only verifies read requests.
 - **Third-party calls** are mocked only for Laravel apps that use the `Http` client, through echoproof/laravel. SDKs with their own HTTP client, other languages and non-HTTP dependencies (SMTP, queues) are still called for real during replay.
-- **IDs across requests** are not mapped yet. A recorded request such as `GET /orders/123` may refer to data that does not exist in the test environment. With `--base`, such requests are reported as *not reproduced* (they succeeded in the recording but failed on the base build) instead of being counted as unchanged.
+- **IDs across requests**: with sequential replay (`concurrency = 1`), an ID that the replay creates differently from the recording (order 9812 recorded, order 57 replayed) is carried into later requests for the same entity (`/orders/9812`, `order_id`). IDs of data that already existed when the traffic was recorded cannot be mapped; with `--base`, those requests are reported as *not reproduced* instead of being counted as unchanged. Turn mapping off with `--no-id-mapping` or `[replay] map_ids = false`.
 - **Request order** is preserved by replaying sequentially (`concurrency = 1`). Large traffic can be slow, and parallel replay is only safe for stateless endpoints.
 - **Changes that should have happened but did not** are hard to detect, because Echoproof reports requests that changed.
 - **Rare noise** can slip past a single learning run. Raise `--noise-runs` or add an `ignore` pattern when needed.

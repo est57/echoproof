@@ -34,7 +34,12 @@ async fn main() -> ExitCode {
 }
 
 async fn run(cli: Cli) -> Result<ExitCode> {
-    let config = Config::load(&cli.config)?;
+    let mut config = Config::load(&cli.config)?;
+    if let Command::Replay { replay, .. } | Command::Check { replay, .. } = &cli.command
+        && replay.no_id_mapping
+    {
+        config.replay.map_ids = false;
+    }
     match cli.command {
         Command::Init => {
             if cli.config.exists() {

@@ -10,7 +10,7 @@ pub fn endpoint_key(method: &str, path: &str) -> String {
     format!("{} {}", method.to_ascii_uppercase(), segments.join("/"))
 }
 
-fn is_id_like(segment: &str) -> bool {
+pub(crate) fn is_id_like(segment: &str) -> bool {
     !segment.is_empty()
         && (segment.bytes().all(|b| b.is_ascii_digit())
             || noise::is_uuid(segment)

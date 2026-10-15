@@ -1,6 +1,6 @@
 # Design: requests that refer to recorded IDs
 
-Status: proposal
+Status: implemented (phase 1 and phase 2), unreleased
 
 ## Problem
 

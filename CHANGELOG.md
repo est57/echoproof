@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- IDs created during a sequential replay are carried into later requests for the same entity: order 9812 in the recording, created as order 57 in the test database, so `GET /orders/9812` and `{"order_id": 9812}` are sent as 57. Entities come from field names, enclosing keys and the request path, so an order ID never rewrites a table number. Turn it off with `--no-id-mapping` or `[replay] map_ids = false`.
 - Requests that succeeded in the recording but fail on the base build are reported as *not reproduced* and are no longer counted as unchanged. The agent report states them as unverified, with examples such as `GET /orders/9812: recorded 200, base build 404`.
 - MCP: when `code_diff_file` is omitted, the intent judge gets the project's uncommitted changes from `git diff HEAD` (external diff drivers, textconv filters and fsmonitor hooks disabled, capped at 100,000 characters). Agents no longer need to write a diff file for the judge to see the code.
 

@@ -22,6 +22,9 @@ safe_methods = ["GET", "HEAD", "OPTIONS"]
 # to learn noise, then the candidate).
 # reset = "./scripts/reset-staging-db.sh"
 noise_runs = 1
+# With concurrency = 1, an ID that the replay creates differently from the recording
+# (order 9812 recorded, order 57 replayed) is carried into later requests for that entity.
+map_ids = true
 
 [diff]
 auto_noise = true

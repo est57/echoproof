@@ -87,6 +87,9 @@ pub struct ReplayArgs {
     /// Endpoint whose write requests may be replayed ("POST /orders", "*"). Repeatable.
     #[arg(long)]
     pub allow_writes: Vec<String>,
+    /// Do not carry IDs created during the replay into later requests.
+    #[arg(long)]
+    pub no_id_mapping: bool,
 }
 
 #[derive(Args)]
