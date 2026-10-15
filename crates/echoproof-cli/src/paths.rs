@@ -11,6 +11,10 @@ impl Root {
         Ok(Self(std::env::current_dir()?.canonicalize()?))
     }
 
+    pub fn path(&self) -> &Path {
+        &self.0
+    }
+
     pub fn readable(&self, path: &str) -> Result<PathBuf> {
         let resolved = self
             .0

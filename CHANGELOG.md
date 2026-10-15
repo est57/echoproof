@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- MCP: when `code_diff_file` is omitted, the intent judge gets the project's uncommitted changes from `git diff HEAD` (external diff drivers, textconv filters and fsmonitor hooks disabled, capped at 100,000 characters). Agents no longer need to write a diff file for the judge to see the code.
+
 ## 0.2.1 - 2026-10-15
 
 - MCP: a pass that skipped write requests now reads as partial in the agent report ("PASS for the N replayed requests only; M write requests were NOT verified"), and projects with `[replay] reset` are told to allow every write. In a real agent test this turned an overstated "all requests pass" into a full re-check.

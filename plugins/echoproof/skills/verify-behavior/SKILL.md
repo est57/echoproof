@@ -20,16 +20,15 @@ If the `echoproof_check` tool is not available, the `echoproof` binary is probab
 
 ## Run the check
 
-1. Save your change as a diff: `git diff > change.diff`.
-2. Call `echoproof_check` with:
+1. Call `echoproof_check` with:
    - `snapshot`, `target`, and `base` when available
    - `intent`: what the user asked you to change, in your own words, including fields or endpoints you expect to change
-   - `code_diff_file`: `change.diff`
+   - `code_diff_file`: leave it out in a git repository; the judge then reads your uncommitted changes (`git diff HEAD`). Pass a diff file only when the change is already committed or lives outside git
    - `allow_writes`: `["*"]` when state is restored between passes (see above). Do not list single endpoints when everything may be replayed: a misspelled path silently skips requests
-3. Read the verdict:
+2. Read the verdict:
    - **PASS** or **INTENDED** on every request: report the result, including any changes the judge marked intended.
    - **PASS for the replayed requests only** (the report says write requests were NOT verified): if writes may be replayed, check again with `allow_writes: ["*"]`. If they may not, your final answer must say how many requests were not verified.
-   - **REGRESSION**: open the listed exchanges with `echoproof_exchange` (pass the `run_id` and exchange `id` from the report), find the cause in the code, fix it, write a new diff, and check again.
+   - **REGRESSION**: open the listed exchanges with `echoproof_exchange` (pass the `run_id` and exchange `id` from the report), find the cause in the code, fix it, and check again.
 
 A finding may come from code you did not write, such as uncommitted work already in the file. Trace it anyway and tell the user what you found; fix it only if it is clearly a bug and within reach of the task, and say so in your report.
 

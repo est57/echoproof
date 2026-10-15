@@ -45,7 +45,7 @@ pub fn tools() -> Value {
     });
     let code_diff_file = json!({
         "type": "string",
-        "description": "Optional path (inside the project) to a file with the code diff, given to the judge."
+        "description": "Optional path (inside the project) to a file with the code diff, given to the judge. When omitted, the judge gets the uncommitted changes from `git diff HEAD`."
     });
     let max_examples = json!({ "type": "integer", "minimum": 0, "description": "Example requests per change (default 3)." });
     json!([

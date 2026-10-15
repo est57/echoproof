@@ -2,6 +2,7 @@
 //! stdout carries protocol messages only.
 
 mod args;
+mod gitdiff;
 mod schema;
 mod tools;
 

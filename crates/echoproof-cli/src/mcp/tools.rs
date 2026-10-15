@@ -9,6 +9,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use super::args::{CheckArgs, DiffArgs, ExchangeArgs, parse};
+use super::gitdiff;
 use crate::check::{self, CheckPlan};
 use crate::output::{ReportInput, judged_report};
 use crate::paths::Root;
@@ -53,9 +54,13 @@ impl Server {
         read_snapshot(&self.root.readable(path)?)
     }
 
-    fn code_diff(&self, path: Option<&str>) -> Result<Option<String>> {
-        path.map(|p| Ok(std::fs::read_to_string(self.root.readable(p)?)?))
-            .transpose()
+    /// Without a diff file, the judge gets the project's uncommitted changes.
+    fn code_diff(&self, path: Option<&str>, judged: bool) -> Result<Option<String>> {
+        match path {
+            Some(p) => Ok(Some(std::fs::read_to_string(self.root.readable(p)?)?)),
+            None if judged => Ok(gitdiff::working_tree(self.root.path())),
+            None => Ok(None),
+        }
     }
 
     /// Replays carry configured credentials, so agents may only reach localhost
@@ -113,11 +118,12 @@ impl Server {
                 args.target
             );
         }
+        let code_diff = self.code_diff(args.code_diff_file.as_deref(), args.intent.is_some())?;
         let request = ReportRequest {
             expect: args.expect,
             max_examples: args.max_examples,
             intent: args.intent,
-            code_diff: self.code_diff(args.code_diff_file.as_deref())?,
+            code_diff,
             noise: out.noise,
         };
         self.finish(&config, out.reference, out.candidate, request)
@@ -128,7 +134,7 @@ impl Server {
         let args: DiffArgs = parse(arguments)?;
         let config = self.config()?;
         let request = ReportRequest {
-            code_diff: self.code_diff(args.code_diff_file.as_deref())?,
+            code_diff: self.code_diff(args.code_diff_file.as_deref(), args.intent.is_some())?,
             expect: args.expect,
             max_examples: args.max_examples,
             intent: args.intent,
