@@ -12,6 +12,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 use crate::http::{MAX_BODY, content_type, forwardable, read_body, to_headers};
+use crate::outproxy::OutboundProxy;
 use crate::replay::parse_target;
 
 struct Recorder {
@@ -20,18 +21,27 @@ struct Recorder {
     sanitizer: Sanitizer,
     writer: Mutex<SnapshotWriter>,
     recorded: AtomicU64,
+    outbound: Option<Arc<OutboundProxy>>,
 }
 
-pub async fn run(upstream: &str, listen: &str, out: &Path, sanitizer: Sanitizer) -> Result<()> {
+pub async fn run(
+    upstream: &str,
+    listen: &str,
+    out: &Path,
+    sanitizer: Sanitizer,
+    outbound: Option<Arc<OutboundProxy>>,
+) -> Result<()> {
     parse_target(upstream)?;
     let recorder = Arc::new(Recorder {
         client: reqwest::Client::builder()
+            .no_proxy()
             .redirect(reqwest::redirect::Policy::none())
             .build()?,
         upstream: upstream.trim_end_matches('/').to_string(),
         sanitizer,
         writer: Mutex::new(SnapshotWriter::create(out)?),
         recorded: AtomicU64::new(0),
+        outbound,
     });
     let app = Router::new().fallback(proxy).with_state(recorder.clone());
     let listener = tokio::net::TcpListener::bind(listen)
@@ -45,6 +55,15 @@ pub async fn run(upstream: &str, listen: &str, out: &Path, sanitizer: Sanitizer)
         .with_graceful_shutdown(shutdown_signal())
         .await?;
     let count = recorder.recorded.load(Ordering::Relaxed);
+    if let Some(recording) = recorder.outbound.as_ref().and_then(|p| p.recording()) {
+        let unattributed = recording.unattributed();
+        if unattributed > 0 {
+            eprintln!(
+                "echoproof record: warning: {unattributed} outbound calls happened while several \
+                 requests were in flight and were not stored; record one request at a time"
+            );
+        }
+    }
     eprintln!(
         "echoproof record: {count} exchanges written to {}",
         out.display()
@@ -76,8 +95,15 @@ async fn forward(recorder: &Recorder, request: Request) -> Result<Response> {
     for (name, value) in parts.headers.iter().filter(|(name, _)| forwardable(name)) {
         upstream_request = upstream_request.header(name, value);
     }
+    let recording = recorder.outbound.as_ref().and_then(|p| p.recording());
+    let token = recording.map(|r| r.enter());
     let started = Instant::now();
-    let upstream_response = upstream_request.body(request_bytes.clone()).send().await?;
+    let sent = upstream_request.body(request_bytes.clone()).send().await;
+    let calls = match (recording, token) {
+        (Some(recording), Some(token)) => recording.leave(token),
+        _ => Vec::new(),
+    };
+    let upstream_response = sent?;
     let status = upstream_response.status();
     let response_headers = upstream_response.headers().clone();
     let response_bytes = read_body(upstream_response).await?;
@@ -100,7 +126,7 @@ async fn forward(recorder: &Recorder, request: Request) -> Result<Response> {
             latency_ms: started.elapsed().as_millis() as u64,
         },
         skipped: None,
-        outbound: None,
+        outbound: (!calls.is_empty()).then_some(calls),
     };
     recorder.sanitizer.apply(&mut exchange);
     let written = recorder

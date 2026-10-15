@@ -241,6 +241,21 @@ Service yang memanggil payment gateway, layanan pesan, atau API lain tidak boleh
 
 Pada contoh ini response checkout identik; hanya nominal yang dikirim ke gateway yang berubah. Panggilan yang tidak pernah terekam dilaporkan sebagai `call added` dengan tingkat breaking. Kalau sebuah build melaporkan panggilan yang tidak bisa dibaca Echoproof, request itu gagal dalam check, bukan lolos tanpa verifikasi.
 
+#### Bahasa apa pun: proxy keluar
+
+Untuk service yang bukan Laravel, atau yang memanggil pihak ketiga lewat SDK dengan klien HTTP sendiri, Echoproof dapat menjadi proxy untuk panggilan keluar service:
+
+```bash
+echoproof ca init                                   # CA per proyek di .echoproof/, kunci mode 0600
+echoproof ca env --runtime php                      # atau node, python, go: setting untuk service
+echoproof record --upstream http://127.0.0.1:8000 --listen 127.0.0.1:8080 -o traffic.jsonl \
+  --outbound-listen 127.0.0.1:8899                  # merekam setiap panggilan bersama request yang berjalan
+echoproof check -s traffic.jsonl --base http://127.0.0.1:8001 -t http://127.0.0.1:8002 \
+  --outbound-proxy 127.0.0.1:8899                   # menjawab setiap panggilan dari rekaman
+```
+
+Pasang setting proxy dan CA hanya pada service yang diuji. Echoproof sendiri mengabaikan variabel proxy dari environment. Saat replay, proxy tidak punya jalur ke tujuan asli. Klien yang mengabaikan setting proxy (Node sebelum 22.21 tanpa `NODE_USE_ENV_PROXY=1`, atau kode yang menetapkan proxy sendiri) tetap memanggil service asli, tetapi terlihat sebagai `call removed`, tidak pernah sebagai lulus; bila memungkinkan, jalankan build uji tanpa jalur jaringan ke luar. Nilai rahasia yang dipantulkan pihak ketiga (API key di URL yang dikembalikan, token di header yang dikembalikan) ikut disensor. Perekaman hanya mengatribusikan panggilan dengan tepat selama request datang satu per satu, jadi rekamlah di staging atau dari traffic hasil skrip.
+
 ## Referensi perintah
 
 | Perintah | Fungsi |
@@ -492,7 +507,7 @@ Teks niat, diff kode (jika diberikan), nama endpoint dan field, jumlah request y
 ## Batasan
 
 - **Request tulis** membutuhkan lingkungan uji yang dapat di-reset. Tanpa itu, gunakan mode aman, yang hanya memverifikasi request baca.
-- **Panggilan ke pihak ketiga** baru di-mock untuk aplikasi Laravel yang memakai klien `Http`, lewat echoproof/laravel. SDK dengan klien HTTP sendiri, bahasa lain, dan dependency non-HTTP (SMTP, antrean) masih dipanggil sungguhan saat replay.
+- **Panggilan ke pihak ketiga** dijawab dari rekaman lewat echoproof/laravel (klien `Http` Laravel) atau proxy keluar (klien apa pun yang mematuhi setting proxy). Klien yang mengabaikan setting proxy dan dependency non-HTTP (SMTP, antrean, gRPC lewat socket mentah) masih dipanggil sungguhan; yang pertama terlihat sebagai `call removed`.
 - **ID antar-request**: pada replay berurutan (`concurrency = 1`), ID yang dibuat replay berbeda dari rekaman (order 9812 di rekaman, order 57 saat replay) dibawa ke request berikutnya untuk entitas yang sama (`/orders/9812`, `order_id`). ID data yang sudah ada saat traffic direkam tidak dapat dipetakan; dengan `--base`, request seperti itu dilaporkan sebagai *not reproduced*, bukan dihitung tidak berubah. Matikan pemetaan dengan `--no-id-mapping` atau `[replay] map_ids = false`.
 - **Urutan request** dijaga dengan replay berurutan (`concurrency = 1`). Traffic besar bisa lambat, dan replay paralel hanya aman untuk endpoint tanpa state.
 - **Perubahan yang seharusnya terjadi tetapi tidak terjadi** sulit dideteksi, karena Echoproof melaporkan request yang berubah.

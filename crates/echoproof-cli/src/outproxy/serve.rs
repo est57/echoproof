@@ -14,6 +14,7 @@ use tokio::net::TcpListener;
 use tokio_rustls::TlsAcceptor;
 
 use super::OutboundProxy;
+use super::recording::FORWARDED;
 use crate::http::{MAX_BODY, content_type, is_hop_header, to_headers};
 
 type Reply = Response<Full<Bytes>>;
@@ -94,6 +95,13 @@ async fn answer(
     req: Request<Incoming>,
     tls_host: Option<&str>,
 ) -> Result<Reply> {
+    if req.headers().contains_key(FORWARDED) {
+        return Ok(text(
+            StatusCode::LOOP_DETECTED,
+            "echoproof proxy: this request already passed through the proxy; \
+             do not set HTTPS_PROXY for the echoproof process itself",
+        ));
+    }
     let url = match tls_host {
         Some(host) => {
             let path = req.uri().path_and_query().map_or("/", |p| p.as_str());
@@ -111,12 +119,14 @@ async fn answer(
         .await
         .map_err(|error| anyhow!("cannot read request body: {error}"))?
         .to_bytes();
-    let recorded = proxy.answer(OutboundRequest {
-        method,
-        url,
-        headers,
-        body: Body::from_bytes(&bytes, declared.as_deref()),
-    });
+    let recorded = proxy
+        .respond(OutboundRequest {
+            method,
+            url,
+            headers,
+            body: Body::from_bytes(&bytes, declared.as_deref()),
+        })
+        .await;
     let mut reply = Response::builder().status(StatusCode::from_u16(recorded.status)?);
     for (name, value) in &recorded.headers {
         // Recorded bodies are stored decoded, so their original encoding no longer applies.

@@ -28,6 +28,10 @@ pub enum Command {
         listen: Option<String>,
         #[arg(long, short)]
         out: PathBuf,
+        /// Also record the service's outbound HTTP(S) calls through a proxy on this loopback
+        /// address. Start the service with the settings from `echoproof ca env`.
+        #[arg(long)]
+        outbound_listen: Option<String>,
     },
     /// Replay a snapshot against a target and save its responses.
     Replay {

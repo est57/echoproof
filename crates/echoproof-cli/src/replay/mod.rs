@@ -102,6 +102,7 @@ pub fn parse_target(target: &str) -> Result<Url> {
 pub async fn replay(exchanges: &[Exchange], options: &ReplayOptions) -> Result<Vec<Exchange>> {
     let target = parse_target(&options.target)?;
     let client = reqwest::Client::builder()
+        .no_proxy()
         .timeout(options.timeout)
         .redirect(reqwest::redirect::Policy::none())
         .build()?;

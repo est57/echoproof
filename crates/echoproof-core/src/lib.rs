@@ -14,4 +14,5 @@ pub mod outbound;
 pub mod render;
 pub mod report;
 pub mod sanitize;
+mod scrub;
 pub mod snapshot;

@@ -1,6 +1,6 @@
 # Design: outbound proxy mode
 
-Status: proposal
+Status: implemented, unreleased
 
 ## Problem
 

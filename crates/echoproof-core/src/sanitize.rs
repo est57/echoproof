@@ -2,6 +2,7 @@ use serde_json::Value;
 use std::collections::HashSet;
 
 use crate::config::SanitizeConfig;
+use crate::scrub;
 use crate::snapshot::{Body, Exchange, Headers};
 
 pub const REDACTED: &str = "[REDACTED]";
@@ -35,6 +36,7 @@ impl Sanitizer {
     }
 
     pub fn apply(&self, exchange: &mut Exchange) {
+        let secrets = scrub::secrets(self, exchange);
         self.redact_headers(&mut exchange.request.headers);
         self.redact_headers(&mut exchange.response.headers);
         self.redact_body(&mut exchange.request.body);
@@ -46,6 +48,7 @@ impl Sanitizer {
             self.redact_body(&mut call.request.body);
             self.redact_body(&mut call.response.body);
         }
+        scrub::scrub(exchange, &secrets);
     }
 
     /// Query parameters follow the field rules: `?api_key=...` is as secret as a body field.
@@ -69,6 +72,16 @@ impl Sanitizer {
             })
             .collect();
         format!("{base}?{}", pairs.join("&"))
+    }
+
+    pub(crate) fn header_is_secret(&self, name: &str) -> bool {
+        self.headers.contains(&name.to_ascii_lowercase())
+    }
+
+    pub(crate) fn field_is_secret(&self, key: &str, value: &Value) -> bool {
+        let key = key.to_ascii_lowercase();
+        self.fields.contains(&key)
+            || (value.is_string() && self.patterns.iter().any(|p| wildcard(p, &key)))
     }
 
     fn redact_headers(&self, headers: &mut Headers) {

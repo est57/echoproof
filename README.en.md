@@ -241,6 +241,21 @@ A service that calls payment gateways, messaging or other APIs must not reach th
 
 The checkout response was identical in this example; only the amount sent to the gateway changed. A call that was never recorded is reported as `call added` with severity breaking. If a build reports calls that Echoproof cannot read, the request fails the check instead of passing unverified.
 
+#### Any language: the outbound proxy
+
+For services that are not Laravel, or that call third parties through an SDK with its own HTTP client, Echoproof can act as the proxy for the service's outbound calls:
+
+```bash
+echoproof ca init                                   # per-project CA in .echoproof/, mode 0600 key
+echoproof ca env --runtime php                      # or node, python, go: settings for the service
+echoproof record --upstream http://127.0.0.1:8000 --listen 127.0.0.1:8080 -o traffic.jsonl \
+  --outbound-listen 127.0.0.1:8899                  # records each call with the request in flight
+echoproof check -s traffic.jsonl --base http://127.0.0.1:8001 -t http://127.0.0.1:8002 \
+  --outbound-proxy 127.0.0.1:8899                   # answers every call from the recording
+```
+
+Set the proxy and CA settings only on the service under test. Echoproof itself ignores proxy environment variables. During replay the proxy has no way to reach the real destination. A client that ignores the proxy settings (Node before 22.21 without `NODE_USE_ENV_PROXY=1`, or code that sets its own proxy) still calls the real service, but shows up as `call removed`, never as a pass; run test builds without an outside network route where you can. Secret values that a third party echoes back (an API key in a returned URL, a token in a returned header) are redacted too. Recording attributes calls correctly only while requests arrive one at a time, so record on staging or scripted traffic.
+
 ## Command reference
 
 | Command | Purpose |
@@ -492,7 +507,7 @@ The intent text, the code diff (when given), endpoint and field names, the numbe
 ## Limitations
 
 - **Write requests** need a test environment that can be reset. Without one, use safe mode, which only verifies read requests.
-- **Third-party calls** are mocked only for Laravel apps that use the `Http` client, through echoproof/laravel. SDKs with their own HTTP client, other languages and non-HTTP dependencies (SMTP, queues) are still called for real during replay.
+- **Third-party calls** are answered from the recording through echoproof/laravel (Laravel's `Http` client) or the outbound proxy (any client that honors proxy settings). Clients that ignore proxy settings and non-HTTP dependencies (SMTP, queues, gRPC over raw sockets) are still called for real; the former show up as `call removed`.
 - **IDs across requests**: with sequential replay (`concurrency = 1`), an ID that the replay creates differently from the recording (order 9812 recorded, order 57 replayed) is carried into later requests for the same entity (`/orders/9812`, `order_id`). IDs of data that already existed when the traffic was recorded cannot be mapped; with `--base`, those requests are reported as *not reproduced* instead of being counted as unchanged. Turn mapping off with `--no-id-mapping` or `[replay] map_ids = false`.
 - **Request order** is preserved by replaying sequentially (`concurrency = 1`). Large traffic can be slow, and parallel replay is only safe for stateless endpoints.
 - **Changes that should have happened but did not** are hard to detect, because Echoproof reports requests that changed.

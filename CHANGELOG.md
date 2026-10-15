@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Outbound proxy for any language: `echoproof ca init` creates a per-project CA, `record --outbound-listen` records each outbound HTTP(S) call with the request in flight, and `check`/`replay --outbound-proxy` answer every call from the recording through a loopback proxy that has no path to the real destination. `echoproof ca env --runtime php|node|python|go` prints the settings for the service. Validated with raw curl in PHP and `fetch` in Node 25 against a real HTTPS API.
+- Secret values are now redacted everywhere in an exchange once they are found in a redacted place, so a key that a third party echoes back in its response no longer leaks into the snapshot.
+- Echoproof's own HTTP clients ignore proxy environment variables, and the recording proxy refuses requests that already passed through it, so exporting the build's proxy settings in the same shell cannot create a loop.
+- Fixtures for echoproof/laravel are only posted to targets that answer its probe, so a catch-all route on another service never runs on the fixture path.
+
 ## 0.3.0 - 2026-10-15
 
 - IDs created during a sequential replay are carried into later requests for the same entity: order 9812 in the recording, created as order 57 in the test database, so `GET /orders/9812` and `{"order_id": 9812}` are sent as 57. Entities come from field names, enclosing keys and the request path, so an order ID never rewrites a table number. Turn it off with `--no-id-mapping` or `[replay] map_ids = false`.

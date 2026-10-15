@@ -59,12 +59,25 @@ async fn run(cli: Cli) -> Result<ExitCode> {
             upstream,
             listen,
             out,
+            outbound_listen,
         } => {
             let upstream = upstream
                 .or(config.record.upstream.clone())
                 .context("no upstream: pass --upstream or set record.upstream")?;
             let listen = listen.unwrap_or(config.record.listen.clone());
-            record::run(&upstream, &listen, &out, Sanitizer::new(&config.sanitize)).await?;
+            let outbound = match outbound_listen {
+                Some(address) => Some(
+                    OutboundProxy::start(
+                        &address,
+                        Path::new(ca::DIR),
+                        outproxy::Mode::Record(outproxy::Recording::new()?),
+                    )
+                    .await?,
+                ),
+                None => None,
+            };
+            let sanitizer = Sanitizer::new(&config.sanitize);
+            record::run(&upstream, &listen, &out, sanitizer, outbound).await?;
         }
         Command::Replay {
             snapshot,

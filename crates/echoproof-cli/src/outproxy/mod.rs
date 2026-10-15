@@ -1,8 +1,11 @@
-//! Forward proxy for replays: test builds send their outbound HTTP(S) calls here and get the
-//! recorded answers. There is no upstream code path, so a replay cannot reach a real service.
+//! Forward proxy for a service's outbound HTTP(S) calls. While recording it forwards each call and
+//! stores it; during replay it answers from the recording and has no upstream code path at all.
 
+mod recording;
 mod serve;
 pub mod session;
+
+pub use recording::Recording;
 
 use anyhow::{Context, Result, bail};
 use echoproof_core::outbound::{OutboundCall, OutboundRequest};
@@ -18,10 +21,15 @@ use tokio_rustls::rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs
 use crate::ca::Authority;
 use session::Session;
 
+pub enum Mode {
+    Replay(Mutex<Session>),
+    Record(Recording),
+}
+
 pub struct OutboundProxy {
     authority: Authority,
     tls: Mutex<HashMap<String, Arc<ServerConfig>>>,
-    session: Mutex<Session>,
+    mode: Mode,
     listener: Mutex<Option<tokio::task::AbortHandle>>,
 }
 
@@ -43,7 +51,7 @@ impl Drop for Running {
 }
 
 impl OutboundProxy {
-    pub async fn start(listen: &str, ca_dir: &Path) -> Result<Arc<Self>> {
+    pub async fn start(listen: &str, ca_dir: &Path, mode: Mode) -> Result<Arc<Self>> {
         let addr: SocketAddr = listen.parse().with_context(|| {
             format!(
                 "invalid outbound proxy address {listen:?}; use host:port such as 127.0.0.1:8899"
@@ -55,7 +63,7 @@ impl OutboundProxy {
         let proxy = Arc::new(Self {
             authority: Authority::load(ca_dir)?,
             tls: Mutex::default(),
-            session: Mutex::default(),
+            mode,
             listener: Mutex::default(),
         });
         let listener = tokio::net::TcpListener::bind(addr)
@@ -63,7 +71,11 @@ impl OutboundProxy {
             .with_context(|| format!("cannot listen on {addr}"))?;
         let task = tokio::spawn(serve::accept(listener, proxy.clone()));
         *proxy.listener.lock().unwrap_or_else(|p| p.into_inner()) = Some(task.abort_handle());
-        eprintln!("echoproof: outbound proxy on http://{addr}, answering from the recording");
+        let role = match proxy.mode {
+            Mode::Replay(_) => "answering from the recording",
+            Mode::Record(_) => "forwarding and recording",
+        };
+        eprintln!("echoproof: outbound proxy on http://{addr}, {role}");
         Ok(proxy)
     }
 
@@ -81,32 +93,59 @@ impl OutboundProxy {
     /// Starts the proxy configured in `[replay] outbound_proxy`, if any.
     pub async fn from_config(address: Option<&str>) -> Result<Running> {
         Ok(Running(match address {
-            Some(address) => Some(Self::start(address, Path::new(crate::ca::DIR)).await?),
+            Some(address) => Some(
+                Self::start(
+                    address,
+                    Path::new(crate::ca::DIR),
+                    Mode::Replay(Mutex::default()),
+                )
+                .await?,
+            ),
             None => None,
         }))
     }
 
+    pub fn recording(&self) -> Option<&Recording> {
+        match &self.mode {
+            Mode::Record(recording) => Some(recording),
+            Mode::Replay(_) => None,
+        }
+    }
+
     pub fn begin(&self, recorded: &[OutboundCall]) {
-        self.session().begin(recorded);
+        if let Some(mut session) = self.session() {
+            session.begin(recorded);
+        }
     }
 
     pub fn finish(&self) -> Vec<OutboundCall> {
-        self.session().finish()
+        self.session().map(|mut s| s.finish()).unwrap_or_default()
     }
 
     /// Calls that arrived while no request was being replayed.
     pub fn stray(&self) -> usize {
-        self.session().stray
+        self.session().map_or(0, |s| s.stray)
     }
 
-    fn answer(&self, request: OutboundRequest) -> Response {
-        self.session().answer(request)
+    async fn respond(&self, request: OutboundRequest) -> Response {
+        if let Mode::Record(recording) = &self.mode {
+            return recording.forward(request).await;
+        }
+        match self.session() {
+            Some(mut session) => session.answer(request),
+            None => unreachable!("replay mode always has a session"),
+        }
     }
 
-    fn session(&self) -> MutexGuard<'_, Session> {
-        self.session
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    fn session(&self) -> Option<MutexGuard<'_, Session>> {
+        match &self.mode {
+            Mode::Replay(session) => Some(
+                session
+                    .lock()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner()),
+            ),
+            Mode::Record(_) => None,
+        }
     }
 
     fn tls_config(&self, host: &str) -> Result<Arc<ServerConfig>> {
