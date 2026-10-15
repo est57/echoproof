@@ -279,7 +279,7 @@ dependencies = [
 
 [[package]]
 name = "demo-shop"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "axum",
  "chrono",
@@ -303,7 +303,7 @@ dependencies = [
 
 [[package]]
 name = "echoproof"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -320,7 +320,7 @@ dependencies = [
 
 [[package]]
 name = "echoproof-core"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "base64 0.22.1",

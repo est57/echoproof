@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 - 2026-10-15
 
 - IDs created during a sequential replay are carried into later requests for the same entity: order 9812 in the recording, created as order 57 in the test database, so `GET /orders/9812` and `{"order_id": 9812}` are sent as 57. Entities come from field names, enclosing keys and the request path, so an order ID never rewrites a table number. Turn it off with `--no-id-mapping` or `[replay] map_ids = false`.
 - Requests that succeeded in the recording but fail on the base build are reported as *not reproduced* and are no longer counted as unchanged. The agent report states them as unverified, with examples such as `GET /orders/9812: recorded 200, base build 404`.
