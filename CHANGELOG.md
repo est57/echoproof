@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1 - 2026-10-15
+
+- MCP: a pass that skipped write requests now reads as partial in the agent report ("PASS for the N replayed requests only; M write requests were NOT verified"), and projects with `[replay] reset` are told to allow every write. In a real agent test this turned an overstated "all requests pass" into a full re-check.
+- Claude Code plugin: install with `/plugin marketplace add est57/echoproof` and `/plugin install echoproof@echoproof`. It bundles the MCP server and a `verify-behavior` skill.
+- README: install instructions for Cursor, VS Code, Claude Desktop, Codex CLI and Gemini CLI.
+
 ## 0.2.0 - 2026-10-15
 
 - Third-party calls: builds running echoproof/laravel 0.2.0 in replay mode answer outbound HTTP calls from the recording and block all others. Reports show fields a build sent differently (`outbound[POST host/path] $.amount`), added or removed calls, and calls that were never recorded (breaking).
