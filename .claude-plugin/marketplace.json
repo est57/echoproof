@@ -1,0 +1,24 @@
+{
+  "name": "echoproof",
+  "owner": {
+    "name": "est57",
+    "url": "https://github.com/est57"
+  },
+  "metadata": {
+    "description": "Echoproof plugins for Claude Code"
+  },
+  "plugins": [
+    {
+      "name": "echoproof",
+      "source": "./plugins/echoproof",
+      "description": "Verify code changes by replaying recorded HTTP traffic against the base and changed builds",
+      "category": "testing",
+      "tags": [
+        "testing",
+        "regression",
+        "replay",
+        "mcp"
+      ]
+    }
+  ]
+}

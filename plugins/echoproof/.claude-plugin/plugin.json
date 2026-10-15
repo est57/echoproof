@@ -1,0 +1,19 @@
+{
+  "name": "echoproof",
+  "version": "0.2.0",
+  "description": "Verify that a code change does not alter the behavior of an HTTP service, by replaying recorded traffic against the base and changed builds",
+  "author": {
+    "name": "est57",
+    "url": "https://github.com/est57"
+  },
+  "homepage": "https://github.com/est57/echoproof",
+  "repository": "https://github.com/est57/echoproof",
+  "license": "MIT OR Apache-2.0",
+  "keywords": [
+    "testing",
+    "regression",
+    "replay",
+    "api",
+    "mcp"
+  ]
+}

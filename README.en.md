@@ -406,21 +406,55 @@ In this recorded run, Claude Code (Sonnet) was asked to trim the cashier name in
 
 `echoproof mcp` runs a [Model Context Protocol](https://modelcontextprotocol.io) server over stdio, so a coding agent can check the changes it made before declaring the work done.
 
-**Claude Code** (run from the project root that holds the snapshot):
+### Install in your coding agent
+
+Install the `echoproof` binary first (`brew install est57/tap/echoproof` or `cargo install echoproof`). Every agent below starts `echoproof mcp` in your project folder, so it can reach your local builds and snapshot files.
+
+**Claude Code, as a plugin** (recommended). The plugin adds the MCP server and a `verify-behavior` skill that tells Claude when and how to check its changes, so no extra instructions in `CLAUDE.md` are needed:
+
+```text
+/plugin marketplace add est57/echoproof
+/plugin install echoproof@echoproof
+```
+
+From a shell: `claude plugin marketplace add est57/echoproof` and `claude plugin install echoproof@echoproof`.
+
+**Claude Code, MCP server only**:
 
 ```bash
 claude mcp add echoproof -- echoproof mcp
 ```
 
-**Other clients** (`.mcp.json`):
+**Cursor** (`.cursor/mcp.json` in the project, or `~/.cursor/mcp.json`), **Claude Desktop** (`claude_desktop_config.json`), and other clients that read an `mcpServers` map:
 
 ```json
 { "mcpServers": { "echoproof": { "command": "echoproof", "args": ["mcp"] } } }
 ```
 
+**VS Code** with Copilot agent mode (`.vscode/mcp.json`):
+
+```json
+{ "servers": { "echoproof": { "type": "stdio", "command": "echoproof", "args": ["mcp"] } } }
+```
+
+**Codex CLI**: `codex mcp add echoproof -- echoproof mcp`, or in `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.echoproof]
+command = "echoproof"
+args = ["mcp"]
+```
+
+**Gemini CLI**: `gemini mcp add echoproof echoproof mcp`, which writes `.gemini/settings.json` in the project.
+
+The Claude Code integration has been tested end to end. The other clients use the same standard MCP over stdio but have not been tested yet; reports are welcome. Web-based assistants such as ChatGPT and Claude.ai cannot use Echoproof, because they run on the provider's servers and cannot reach the builds on your machine.
+
+
 Echoproof is listed in the [official MCP Registry](https://registry.modelcontextprotocol.io) under this name:
 
 mcp-name: io.github.est57/echoproof
+
+### Tools
 
 | Tool | Main inputs | Purpose |
 |---|---|---|

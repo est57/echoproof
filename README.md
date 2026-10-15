@@ -406,21 +406,55 @@ Dalam rekaman ini, Claude Code (Sonnet) diminta merapikan nama kasir di service 
 
 `echoproof mcp` menjalankan server [Model Context Protocol](https://modelcontextprotocol.io) melalui stdio, sehingga coding agent dapat memeriksa perubahan yang dibuatnya sendiri sebelum menyatakan pekerjaan selesai.
 
-**Claude Code** (jalankan dari root proyek yang berisi snapshot):
+### Pasang di coding agent Anda
+
+Pasang binary `echoproof` lebih dulu (`brew install est57/tap/echoproof` atau `cargo install echoproof`). Setiap agent di bawah menjalankan `echoproof mcp` di folder proyek Anda, sehingga dapat menjangkau build lokal dan file snapshot.
+
+**Claude Code, sebagai plugin** (disarankan). Plugin ini memasang server MCP dan skill `verify-behavior` yang memberi tahu Claude kapan dan bagaimana memeriksa perubahannya, sehingga tidak perlu instruksi tambahan di `CLAUDE.md`:
+
+```text
+/plugin marketplace add est57/echoproof
+/plugin install echoproof@echoproof
+```
+
+Dari shell: `claude plugin marketplace add est57/echoproof` dan `claude plugin install echoproof@echoproof`.
+
+**Claude Code, hanya server MCP**:
 
 ```bash
 claude mcp add echoproof -- echoproof mcp
 ```
 
-**Klien lain** (`.mcp.json`):
+**Cursor** (`.cursor/mcp.json` di proyek, atau `~/.cursor/mcp.json`), **Claude Desktop** (`claude_desktop_config.json`), dan klien lain yang membaca peta `mcpServers`:
 
 ```json
 { "mcpServers": { "echoproof": { "command": "echoproof", "args": ["mcp"] } } }
 ```
 
+**VS Code** dengan Copilot agent mode (`.vscode/mcp.json`):
+
+```json
+{ "servers": { "echoproof": { "type": "stdio", "command": "echoproof", "args": ["mcp"] } } }
+```
+
+**Codex CLI**: `codex mcp add echoproof -- echoproof mcp`, atau di `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.echoproof]
+command = "echoproof"
+args = ["mcp"]
+```
+
+**Gemini CLI**: `gemini mcp add echoproof echoproof mcp`, yang menulis `.gemini/settings.json` di proyek.
+
+Integrasi Claude Code sudah diuji dari ujung ke ujung. Klien lain memakai MCP stdio standar yang sama tetapi belum diuji; laporan pemakaian sangat diterima. Asisten berbasis web seperti ChatGPT dan Claude.ai tidak dapat memakai Echoproof, karena berjalan di server penyedianya dan tidak dapat menjangkau build di komputer Anda.
+
+
 Echoproof terdaftar di [MCP Registry resmi](https://registry.modelcontextprotocol.io) dengan nama:
 
 mcp-name: io.github.est57/echoproof
+
+### Tool
 
 | Tool | Input utama | Fungsi |
 |---|---|---|
