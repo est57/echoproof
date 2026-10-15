@@ -22,10 +22,12 @@ jobs:
           cargo_version="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
           server_version="$(jq -r .version server.json)"
           package_version="$(jq -r '.packages[0].version' server.json)"
-          echo "tag $tag, Cargo.toml $cargo_version, server.json $server_version / $package_version"
+          plugin_version="$(jq -r .version plugins/echoproof/.claude-plugin/plugin.json)"
+          echo "tag $tag, Cargo.toml $cargo_version, server.json $server_version / $package_version, plugin $plugin_version"
           test "$tag" = "$cargo_version"
           test "$tag" = "$server_version"
           test "$tag" = "$package_version"
+          test "$tag" = "$plugin_version"
 
   build:
     name: Build ${{ matrix.target }}

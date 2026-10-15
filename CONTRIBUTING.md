@@ -51,7 +51,7 @@ Use the imperative mood and explain why the change is needed, for example `Match
 
 ## Releasing
 
-1. Bump `version` in `Cargo.toml` and both `version` fields in `server.json`, and add a `CHANGELOG.md` entry.
+1. Bump `version` in `Cargo.toml`, both `version` fields in `server.json`, and `version` in `plugins/echoproof/.claude-plugin/plugin.json`, and add a `CHANGELOG.md` entry.
 2. Merge to `main`, then push a tag: `git tag -a vX.Y.Z -m "Echoproof X.Y.Z" && git push origin vX.Y.Z`.
 
 The release workflow checks that the three versions match the tag, builds the binaries, publishes the GitHub release, publishes both crates to crates.io through trusted publishing, and publishes `server.json` to the MCP Registry through GitHub OIDC. No tokens are stored in the repository. The Homebrew tap picks up the new release on its own within six hours, after installing and testing it.
