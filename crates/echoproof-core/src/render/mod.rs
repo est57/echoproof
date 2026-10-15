@@ -1,4 +1,6 @@
 mod agent;
+#[cfg(test)]
+mod agent_tests;
 mod markdown;
 mod text;
 

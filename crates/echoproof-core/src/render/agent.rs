@@ -1,19 +1,31 @@
 use std::collections::HashMap;
 use std::fmt::Write;
 
-use super::{counts, skipped_note, verdict_label};
+use super::{counts, verdict_label};
 use crate::report::{EndpointReport, Example, Report, Verdict, kind_label, short};
 
 /// Plain-text report for a coding agent: what is wrong, which requests show it, what to do next.
-pub fn agent(report: &Report, run_id: Option<&str>) -> String {
+/// `resettable` says whether the project restores state between passes, so every write may be replayed.
+pub fn agent(report: &Report, run_id: Option<&str>, resettable: bool) -> String {
     let mut out = String::new();
-    let _ = writeln!(out, "Echoproof verdict: {}", verdict_label(report.verdict));
+    let partial = report.skipped > 0 && report.verdict != Verdict::Regression;
+    if partial {
+        let _ = writeln!(
+            out,
+            "Echoproof verdict: {} for the {} replayed requests only; {} write requests were NOT verified",
+            verdict_label(report.verdict),
+            report.total - report.skipped,
+            report.skipped
+        );
+    } else {
+        let _ = writeln!(out, "Echoproof verdict: {}", verdict_label(report.verdict));
+    }
     let _ = writeln!(out, "{}.", counts(report, ""));
     if !report.expect.is_empty() {
         let _ = writeln!(out, "Expected to change: {}.", report.expect.join(", "));
     }
     if report.skipped > 0 {
-        let _ = writeln!(out, "{}", skipped_note(report));
+        let _ = writeln!(out, "{}", skipped_note(report, resettable));
     }
     if let Some(judge) = &report.judge {
         let _ = writeln!(out, "Intent check ({}): {}", judge.model, judge.summary);
@@ -29,10 +41,28 @@ pub fn agent(report: &Report, run_id: Option<&str>) -> String {
         (Verdict::Regression, None) => {
             "Next: fix the code, then run echoproof_check again.".to_string()
         }
+        _ if partial => format!(
+            "No unexpected changes in the replayed requests. Do not report the change as fully verified: \
+             say that {} write requests were not replayed, or check again with them allowed.",
+            report.skipped
+        ),
         _ => "No unexpected behavior changes.".to_string(),
     };
     let _ = writeln!(out, "{next}");
     out
+}
+
+fn skipped_note(report: &Report, resettable: bool) -> String {
+    let how = if resettable {
+        "This project restores its state between passes (`[replay] reset` in echoproof.toml), so pass \
+         `allow_writes: [\"*\"]` to replay them all."
+    } else {
+        "Allow them per endpoint (`allow_writes`), only against a disposable environment."
+    };
+    format!(
+        "{} write requests were not replayed (safe mode), so their behavior is NOT verified. {how}",
+        report.skipped
+    )
 }
 
 fn write_unexpected(out: &mut String, report: &Report) {
