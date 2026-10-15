@@ -3,7 +3,7 @@ resolver = "3"
 members = ["crates/echoproof-core", "crates/echoproof-cli", "examples/demo-shop"]
 
 [workspace.package]
-version = "0.3.0"
+version = "0.4.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/est57/echoproof"
@@ -30,7 +30,7 @@ tokio = { version = "1", features = ["full"] }
 tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12"] }
 toml = "0.8"
 uuid = { version = "1", features = ["v4"] }
-echoproof-core = { path = "crates/echoproof-core", version = "0.3.0" }
+echoproof-core = { path = "crates/echoproof-core", version = "0.4.0" }
 
 [profile.release]
 strip = true
