@@ -3,7 +3,7 @@
   "name": "io.github.est57/echoproof",
   "title": "Echoproof",
   "description": "Replay real HTTP traffic against base and changed builds; flag behavior changes the intent omits.",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "repository": {
     "url": "https://github.com/est57/echoproof",
     "source": "github"
@@ -13,7 +13,7 @@
     {
       "registryType": "cargo",
       "identifier": "echoproof",
-      "version": "0.1.2",
+      "version": "0.2.0",
       "transport": {
         "type": "stdio"
       },

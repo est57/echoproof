@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.0 - 2026-10-15
+
+- Third-party calls: builds running echoproof/laravel 0.2.0 in replay mode answer outbound HTTP calls from the recording and block all others. Reports show fields a build sent differently (`outbound[POST host/path] $.amount`), added or removed calls, and calls that were never recorded (breaking).
+- Captured outbound calls that cannot be read fail the request instead of passing unverified.
+- The intent judge and the MCP `echoproof_exchange` tool see outbound calls.
+- Snapshots gain an optional `outbound` field; existing snapshots stay valid.
+
 ## 0.1.2 - 2026-10-14
 
 - Record traffic from Laravel without a proxy with `composer require echoproof/laravel`, documented in both READMEs.
